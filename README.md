@@ -39,11 +39,8 @@ App de carreira futebolística (base, várzea, semiprofissional e pelada). Espec
 1. Crie um projeto no [Supabase](https://supabase.com) e rode `supabase/migrations/0001_init.sql` no **SQL Editor**.
 2. Em **Authentication → URL Configuration**, coloque a URL do Netlify (e `http://localhost:5173`) em *Site URL* / *Redirect URLs*.
 3. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-4. Coloque o logo e o ícone na pasta `public/`:
-   - `public/logo.png` ← `craque-da-vez-logo-fundo-azul.png`
-   - `public/icone.png` ← `craque-da-vez-icone-azul.png` (1024 px)
-
-   Sem o `logo.png`, o app mostra o nome e o slogan em texto.
+4. O logo (`public/logo.png`) e os ícones (`public/icone.png`, 1024 px, e `public/icone-192.png`) já estão no projeto.
+   O ícone é o emblema do logo (jogador, arcos e bola) sem o texto, em fundo azul-marinho.
 5. `npm install` e `npm run dev`.
 
 **Netlify:** conecte o repositório, cadastre as duas variáveis `VITE_SUPABASE_*` e publique. O `netlify.toml` já está pronto.
