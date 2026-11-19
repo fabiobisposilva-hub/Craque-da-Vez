@@ -1,0 +1,14 @@
+{
+  "name": "Craque da Vez",
+  "short_name": "Craque da Vez",
+  "description": "Hoje o destaque é você",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#01162C",
+  "theme_color": "#01162C",
+  "icons": [
+    { "src": "/icone.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
