@@ -129,7 +129,7 @@ function UltimosJogos({ d }: { d: ReturnType<typeof useDados> }) {
               <Escudo nome={g.adversario} url={escudoDoAdversario(d, g.adversario)} tamanho={36} />
               <div className="cresce" style={{ minWidth: 0 }}>
                 <b className="num">{time?.nome} {g.gols_pro} × {g.gols_contra} {g.adversario}</b>
-                <p className="muted small">{dataCurta(g.data_hora)} · {g.categoria}</p>
+                <p className="muted small">{dataCurta(g.data_hora)} · {g.categoria}{g.local && ` · 📍 ${g.local}`}</p>
               </div>
             </div>
             <div className="chips" style={{ gap: 6 }}>

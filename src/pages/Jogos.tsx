@@ -45,7 +45,7 @@ export function Jogos() {
                 <b className="num">{time?.nome} {j.gols_pro} × {j.gols_contra} {j.adversario}</b>
                 <div><TipoJogo jogo={j} campeonato={camp} /></div>
                 <p className="muted small">
-                  {dataCurta(j.data_hora)} · {j.categoria}
+                  {dataCurta(j.data_hora)} · {j.categoria}{j.local && ` · 📍 ${j.local}`}
                   {j.ao_vivo && ' · ao vivo'}
                   {futuro && ' · agendado'}
                 </p>

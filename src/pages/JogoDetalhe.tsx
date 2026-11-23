@@ -91,9 +91,19 @@ export function JogoDetalhe() {
           <br />
           {jogo.categoria} · {camp ? `${camp.nome} ${camp.temporada}${fase ? ` · ${fase}` : ''}` : jogo.tipo === 'treino' ? 'Treino' : 'Amistoso'}
           {jogo.casa_fora && ` · ${jogo.casa_fora === 'casa' ? 'em casa' : 'fora'}`}
-          {jogo.local && ` · ${jogo.local}`}
         </p>
       </section>
+
+      {jogo.local && (
+        <section className="cartao linha">
+          <span aria-hidden="true" style={{ fontSize: 22 }}>📍</span>
+          <div className="cresce" style={{ minWidth: 0 }}>
+            <p className="selo">Local da partida</p>
+            <b>{jogo.local}</b>
+          </div>
+          <a className="btn btn-fantasma btn-pequeno" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jogo.local)}`} target="_blank" rel="noopener noreferrer">Ver no mapa</a>
+        </section>
+      )}
 
       <VerEscalacao escalacao={jogo.escalacao ?? []} />
 

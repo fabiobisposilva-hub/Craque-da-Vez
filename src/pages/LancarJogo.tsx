@@ -389,8 +389,11 @@ export function LancarJogo() {
           <button type="button" className="chip" aria-pressed={casaFora === 'fora'} onClick={() => setCasaFora(casaFora === 'fora' ? '' : 'fora')}>Fora</button>
         </div>
         <label className="campo" style={{ gridColumn: '1 / -1' }}>
-          Quadra ou campo (opcional)
-          <input id="lj-local" value={local} onChange={(e) => setLocal(e.target.value)} />
+          📍 Local da partida (opcional)
+          <input id="lj-local" list="lista-locais" autoComplete="off" placeholder="Ex.: Ginásio do Minas, Asa Sul" value={local} onChange={(e) => setLocal(e.target.value)} />
+          <datalist id="lista-locais">
+            {[...new Set(d.jogos.map((g) => g.local?.trim()).filter((x): x is string => !!x))].sort().map((n) => <option key={n} value={n} />)}
+          </datalist>
         </label>
       </div>
 
