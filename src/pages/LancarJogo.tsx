@@ -241,7 +241,7 @@ export function LancarJogo() {
                 <option value="">Escolha o campeonato</option>
                 {campsDoTime.map((c) => <option key={c.id} value={c.id}>{c.nome} {c.temporada}</option>)}
               </select>
-              <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => { setNovoCamp(''); setCampId(''); }}>+ Novo campeonato</button>
+              <button type="button" className="btn btn-fantasma" onClick={() => { setNovoCamp(''); setCampId(''); }}>+ Novo campeonato</button>
             </>
           ) : (
             <>

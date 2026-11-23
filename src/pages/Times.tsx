@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Resultado, Topo } from '../components/Comuns';
-import { todasCategorias } from '../lib/categorias';
+import { categoriaNatural, todasCategorias } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { POSICOES, SITUACOES, type Campeonato, type Time } from '../lib/tipos';
@@ -259,7 +259,7 @@ export function TimeDetalhe() {
         {elenco.length > 0 && <p className="muted small">Posições do {time.modalidade}: {POSICOES[time.modalidade].join(', ')}.</p>}
       </section>
 
-      <Campeonatos camps={camps} podeEditar={souDono || time.tipo === 'particular'} onMudou={d.recarregar} />
+      <Campeonatos timeId={time.id} categorias={cats.length ? cats : [...new Set(elenco.map(({ j }) => categoriaNatural(j!.data_nascimento)))]} camps={camps} podeEditar={souDono || time.tipo === 'particular'} onMudou={d.recarregar} />
 
       {jogos.length > 0 && (
         <section className="cartao">
@@ -278,15 +278,56 @@ export function TimeDetalhe() {
   );
 }
 
-function Campeonatos({ camps, podeEditar, onMudou }: { camps: Campeonato[]; podeEditar: boolean; onMudou: () => void }) {
+function Campeonatos({ timeId, categorias, camps, podeEditar, onMudou }: { timeId: string; categorias: string[]; camps: Campeonato[]; podeEditar: boolean; onMudou: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const [f, setF] = useState({ nome: '', temporada: String(new Date().getFullYear()), categoria: '' });
+  const [erro, setErro] = useState<string | null>(null);
+  async function criar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    const { error } = await supabase.from('campeonatos').insert({
+      time_id: timeId, nome: f.nome.trim(), temporada: Number(f.temporada), categoria: f.categoria || null,
+    });
+    if (error) return setErro(mensagemDeErro(error));
+    setAberto(false);
+    setF({ ...f, nome: '' });
+    onMudou();
+  }
   async function mudar(c: Campeonato, situacao: Campeonato['situacao']) {
     await supabase.from('campeonatos').update({ situacao }).eq('id', c.id);
     onMudou();
   }
   return (
     <section className="pilha">
-      <div className="secao-titulo"><h2>Campeonatos</h2></div>
-      {camps.length === 0 && <p className="muted small">Os campeonatos são criados na hora de lançar um jogo, em “+ Novo campeonato”.</p>}
+      <div className="secao-titulo">
+        <h2>Campeonatos</h2>
+        {podeEditar && !aberto && <button className="link" onClick={() => setAberto(true)}>+ Novo campeonato</button>}
+      </div>
+      {aberto && (
+        <form className="cartao pilha" onSubmit={criar}>
+          <label className="campo">
+            Nome do campeonato
+            <input id="camp-nome" required placeholder="Ex.: Copa Brasília" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} />
+          </label>
+          <div className="grade-2">
+            <label className="campo">
+              Temporada
+              <input id="camp-temp" type="number" inputMode="numeric" min={2000} max={2100} required value={f.temporada} onChange={(e) => setF({ ...f, temporada: e.target.value })} />
+            </label>
+            <label className="campo">
+              Categoria
+              <select id="camp-cat" value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>
+                <option value="">Todas</option>
+                {categorias.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </label>
+          </div>
+          <Erro msg={erro} />
+          <button className="btn btn-primario">Criar campeonato</button>
+          <button type="button" className="link" onClick={() => setAberto(false)}>Cancelar</button>
+        </form>
+      )}
+      {camps.length === 0 && !aberto && <p className="muted small">Nenhum campeonato ainda. Crie aqui ou na hora de lançar um jogo.</p>}
       {camps.map((c) => (
         <div key={c.id} className="cartao linha" style={{ flexWrap: 'wrap' }}>
           <div className="cresce">
