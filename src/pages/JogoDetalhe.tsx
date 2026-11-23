@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { VerEscalacao } from '../components/Escalacao';
+import { ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES } from '../lib/tipos';
@@ -61,6 +62,7 @@ export function JogoDetalhe() {
     <main className="tela">
       <Topo titulo="Jogo" />
 
+      {ehFuturo(jogo) && <SeloAgendado data={jogo.data_hora} />}
       <section className="cartao pilha">
         <div className="placar">
           <div className="pilha" style={{ alignItems: 'center', gap: 6 }}>
@@ -73,8 +75,14 @@ export function JogoDetalhe() {
             )}
           </div>
           <div className="pilha" style={{ alignItems: 'center', gap: 4 }}>
-            <div className="gols num" style={{ fontSize: 36 }}>{jogo.gols_pro} × {jogo.gols_contra}</div>
-            <Resultado r={jogo.resultado} />
+            {ehFuturo(jogo) ? (
+              <b className="confronto-vs" style={{ fontSize: 26 }}>vs</b>
+            ) : (
+              <>
+                <div className="gols num" style={{ fontSize: 36 }}>{jogo.gols_pro} × {jogo.gols_contra}</div>
+                <Resultado r={jogo.resultado} />
+              </>
+            )}
           </div>
           <div className="pilha" style={{ alignItems: 'center', gap: 6 }}>
             <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={56} />

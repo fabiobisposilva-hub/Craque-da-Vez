@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { dataCurta, Escudo, Resultado, TipoJogo, Topo } from '../components/Comuns';
+import { dataCurta, TipoJogo, Topo } from '../components/Comuns';
+import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { chamarDe } from '../lib/tipos';
 
@@ -10,52 +11,31 @@ export function Jogos() {
   const [timeId, setTimeId] = useState('');
   const agora = Date.now();
   const jogos = d.jogos.filter((j) => !timeId || j.time_id === timeId);
-
-  return (
-    <main className="tela">
-      <Topo titulo="Jogos" voltar={false}>
-        <Link to="/lancar" className="btn btn-primario btn-pequeno">+ Lançar</Link>
-      </Topo>
-      {d.times.length > 1 && (
-        <div className="chips">
-          <button className="chip" aria-pressed={!timeId} onClick={() => setTimeId('')}>Todos</button>
-          {d.times.map((t) => <button key={t.id} className="chip" aria-pressed={timeId === t.id} onClick={() => setTimeId(t.id)}>{t.nome}</button>)}
-        </div>
-      )}
-      {!d.carregando && jogos.length === 0 && (
-        <div className="vazio">
-          <div className="bola" aria-hidden="true">⚽</div>
-          <h3>Nenhum jogo lançado</h3>
-          <Link className="btn btn-primario" to="/lancar">Lançar jogo</Link>
-        </div>
-      )}
-      {jogos.map((j) => {
+  // Próximos: o mais perto primeiro. Já disputados: o mais recente primeiro.
+  const proximos = jogos.filter((j) => ehFuturo(j, agora)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
+  const disputados = jogos.filter((j) => !ehFuturo(j, agora));
+  const cartao = (j: (typeof jogos)[number]) => {
         const time = d.times.find((t) => t.id === j.time_id);
         const camp = d.campeonatos.find((c) => c.id === j.campeonato_id);
         const parts = d.participacoes.filter((p) => p.jogo_id === j.id);
         const substituto = j.substituido_por ? d.jogos.find((g) => g.id === j.substituido_por) : null;
-        const futuro = new Date(j.data_hora).getTime() > agora;
+        const futuro = ehFuturo(j, agora);
         return (
           <article key={j.id} className="cartao pilha cartao clicavel" role="link" tabIndex={0} onClick={() => nav(`/jogo/${j.id}`)}
             onKeyDown={(e) => { if (e.key === 'Enter') nav(`/jogo/${j.id}`); }} style={j.substituido_por ? { opacity: 0.7 } : undefined}>
-            <div className="linha">
-              <Resultado r={j.resultado} />
-              <Escudo nome={j.adversario} url={escudoDoAdversario(d, j.adversario)} tamanho={36} />
-              <div className="cresce">
-                <b className="num">{time?.nome} {j.gols_pro} × {j.gols_contra} {j.adversario}</b>
-                <div><TipoJogo jogo={j} campeonato={camp} /></div>
-                <p className="muted small">
-                  {dataCurta(j.data_hora)} · {j.categoria}{j.local && ` · 📍 ${j.local}`}
-                  {j.ao_vivo && ' · ao vivo'}
-                  {futuro && ' · agendado'}
-                </p>
-              </div>
+            {futuro && <SeloAgendado data={j.data_hora} />}
+            <Confronto jogo={j} time={time} escudoAdversario={escudoDoAdversario(d, j.adversario)} />
+            <div className="chips" style={{ gap: 6, justifyContent: 'center' }}>
+              <TipoJogo jogo={j} campeonato={camp} />
+              <span className="tipo-jogo tipo-amistoso">{futuro ? '' : `${dataCurta(j.data_hora)} · `}{j.categoria}</span>
+              {j.local && <span className="tipo-jogo tipo-amistoso">📍 {j.local}</span>}
+              {j.ao_vivo && <span className="tipo-jogo tipo-amistoso">ao vivo</span>}
               {time?.tipo === 'tecnico' && (
-                <span className="etiqueta">{j.origem === 'tecnico' ? 'Oficial' : j.substituido_por ? 'Substituído' : 'Seu lançamento'}</span>
+                <span className="tipo-jogo tipo-amistoso">{j.origem === 'tecnico' ? 'Oficial' : j.substituido_por ? 'Substituído' : 'Seu lançamento'}</span>
               )}
             </div>
             {j.resumo && <p className="small muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {j.resumo}</p>}
-            {parts.length > 0 && (
+            {!futuro && parts.length > 0 && (
               <div className="chips">
                 {parts.map((p) => {
                   const jog = d.jogadores.find((x) => x.id === p.jogador_id);
@@ -82,7 +62,38 @@ export function Jogos() {
             )}
           </article>
         );
-      })}
+  };
+
+  return (
+    <main className="tela">
+      <Topo titulo="Jogos" voltar={false}>
+        <Link to="/lancar" className="btn btn-primario btn-pequeno">+ Lançar</Link>
+      </Topo>
+      {d.times.length > 1 && (
+        <div className="chips">
+          <button className="chip" aria-pressed={!timeId} onClick={() => setTimeId('')}>Todos</button>
+          {d.times.map((t) => <button key={t.id} className="chip" aria-pressed={timeId === t.id} onClick={() => setTimeId(t.id)}>{t.nome}</button>)}
+        </div>
+      )}
+      {!d.carregando && jogos.length === 0 && (
+        <div className="vazio">
+          <div className="bola" aria-hidden="true">⚽</div>
+          <h3>Nenhum jogo lançado</h3>
+          <Link className="btn btn-primario" to="/lancar">Lançar jogo</Link>
+        </div>
+      )}
+      {proximos.length > 0 && (
+        <section className="pilha">
+          <h2>Próximos jogos</h2>
+          {proximos.map(cartao)}
+        </section>
+      )}
+      {disputados.length > 0 && (
+        <section className="pilha">
+          <h2>Já disputados</h2>
+          {disputados.map(cartao)}
+        </section>
+      )}
     </main>
   );
 }

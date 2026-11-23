@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, dataCurta, Escudo, Resultado, TipoJogo } from '../components/Comuns';
+import { Avatar, dataCurta, TipoJogo } from '../components/Comuns';
+import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
 import { Logo } from '../components/Logo';
 import { categoriaNatural } from '../lib/categorias';
 import { escudoDoAdversario, useDados } from '../lib/dados';
@@ -95,14 +96,58 @@ export function Inicio() {
         );
       })}
 
+      <ProximosJogos d={d} />
       <UltimosJogos d={d} />
     </main>
   );
 }
 
+function CartaoDoJogo({ d, g }: { d: ReturnType<typeof useDados>; g: ReturnType<typeof useDados>['jogos'][number] }) {
+  const time = d.times.find((t) => t.id === g.time_id);
+  const camp = d.campeonatos.find((c) => c.id === g.campeonato_id);
+  const futuro = ehFuturo(g);
+  const destaques = futuro ? [] : d.participacoes
+    .filter((p) => p.jogo_id === g.id && (p.gols || p.assistencias || p.craque_do_jogo))
+    .map((p) => {
+      const j = d.jogadores.find((x) => x.id === p.jogador_id);
+      if (!j) return null;
+      const itens = [p.gols ? `${p.gols} gol${p.gols > 1 ? 's' : ''}` : '', p.assistencias ? `${p.assistencias} assist.` : ''].filter(Boolean).join(', ');
+      return `${p.craque_do_jogo ? '★ ' : ''}${chamarDe(j)}${itens ? `: ${itens}` : ''}`;
+    })
+    .filter((x): x is string => !!x);
+  return (
+    <Link to={`/jogo/${g.id}`} className="cartao clicavel pilha" style={{ gap: 10 }}>
+      {futuro && <SeloAgendado data={g.data_hora} />}
+      <Confronto jogo={g} time={time} escudoAdversario={escudoDoAdversario(d, g.adversario)} />
+      <div className="chips" style={{ gap: 6, justifyContent: 'center' }}>
+        <TipoJogo jogo={g} campeonato={camp} />
+        <span className="tipo-jogo tipo-amistoso">{futuro ? '' : `${dataCurta(g.data_hora)} · `}{g.categoria}</span>
+        {g.local && <span className="tipo-jogo tipo-amistoso">📍 {g.local}</span>}
+        {destaques.map((t) => <span key={t} className="tipo-jogo tipo-amistoso" style={{ color: 'var(--text)' }}>{t}</span>)}
+      </div>
+    </Link>
+  );
+}
+
+function ProximosJogos({ d }: { d: ReturnType<typeof useDados> }) {
+  const jogos = d.jogos
+    .filter((g) => !g.substituido_por && ehFuturo(g))
+    .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
+    .slice(0, 5);
+  if (!jogos.length) return null;
+  return (
+    <section className="pilha">
+      <div className="secao-titulo">
+        <h2>Próximos jogos</h2>
+        <Link to="/jogos" className="link">Ver todos</Link>
+      </div>
+      {jogos.map((g) => <CartaoDoJogo key={g.id} d={d} g={g} />)}
+    </section>
+  );
+}
+
 function UltimosJogos({ d }: { d: ReturnType<typeof useDados> }) {
-  const agora = Date.now();
-  const jogos = d.jogos.filter((g) => !g.substituido_por && new Date(g.data_hora).getTime() <= agora).slice(0, 5);
+  const jogos = d.jogos.filter((g) => !g.substituido_por && !ehFuturo(g)).slice(0, 5);
   if (!jogos.length) return null;
   return (
     <section className="pilha">
@@ -110,35 +155,7 @@ function UltimosJogos({ d }: { d: ReturnType<typeof useDados> }) {
         <h2>Últimos jogos</h2>
         <Link to="/jogos" className="link">Ver todos</Link>
       </div>
-      {jogos.map((g) => {
-        const time = d.times.find((t) => t.id === g.time_id);
-        const camp = d.campeonatos.find((c) => c.id === g.campeonato_id);
-        const destaques = d.participacoes
-          .filter((p) => p.jogo_id === g.id && (p.gols || p.assistencias || p.craque_do_jogo))
-          .map((p) => {
-            const j = d.jogadores.find((x) => x.id === p.jogador_id);
-            if (!j) return null;
-            const itens = [p.gols ? `${p.gols} gol${p.gols > 1 ? 's' : ''}` : '', p.assistencias ? `${p.assistencias} assist.` : ''].filter(Boolean).join(', ');
-            return `${p.craque_do_jogo ? '★ ' : ''}${chamarDe(j)}${itens ? `: ${itens}` : ''}`;
-          })
-          .filter(Boolean);
-        return (
-          <Link key={g.id} to={`/jogo/${g.id}`} className="cartao clicavel pilha" style={{ gap: 8 }}>
-            <div className="linha">
-              <Resultado r={g.resultado} />
-              <Escudo nome={g.adversario} url={escudoDoAdversario(d, g.adversario)} tamanho={36} />
-              <div className="cresce" style={{ minWidth: 0 }}>
-                <b className="num">{time?.nome} {g.gols_pro} × {g.gols_contra} {g.adversario}</b>
-                <p className="muted small">{dataCurta(g.data_hora)} · {g.categoria}{g.local && ` · 📍 ${g.local}`}</p>
-              </div>
-            </div>
-            <div className="chips" style={{ gap: 6 }}>
-              <TipoJogo jogo={g} campeonato={camp} />
-              {destaques.map((t) => <span key={t} className="tipo-jogo tipo-amistoso" style={{ color: 'var(--text)' }}>{t}</span>)}
-            </div>
-          </Link>
-        );
-      })}
+      {jogos.map((g) => <CartaoDoJogo key={g.id} d={d} g={g} />)}
     </section>
   );
 }
