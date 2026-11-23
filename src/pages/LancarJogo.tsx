@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
+import { EditorEscalacao } from '../components/Escalacao';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { chamarDe, FASES, type Jogador } from '../lib/tipos';
+import { chamarDe, FASES, type Escalado, type Jogador } from '../lib/tipos';
 
 interface Part {
   jogou: boolean;
@@ -34,6 +35,7 @@ export function LancarJogo() {
   const { id: jogoId } = useParams();
   const d = useDados();
   const [resumo, setResumo] = useState('');
+  const [escalacao, setEscalacao] = useState<Escalado[]>([]);
   const [carregouEdicao, setCarregouEdicao] = useState(false);
   const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
@@ -91,6 +93,7 @@ export function LancarJogo() {
     setGolsPro(g.gols_pro);
     setGolsContra(g.gols_contra);
     setResumo(g.resumo ?? '');
+    setEscalacao(g.escalacao ?? []);
     const novo: Record<string, Part> = {};
     const doJogo = d.participacoes.filter((x) => x.jogo_id === g.id);
     for (const v of d.vinculos.filter((v) => v.time_id === g.time_id)) {
@@ -182,20 +185,34 @@ export function LancarJogo() {
         const { jogou: _jogou, ...resto } = p(j.id);
         return { jogador_id: j.id, ...resto };
       });
+      let idSalvo: string;
       if (jogoId) {
         const { error } = await supabase.rpc('editar_jogo', { p_jogo_id: jogoId, p_jogo: jogo, p_participacoes: participacoes });
         if (error) throw /editar_jogo/.test(error.message) ? new Error('Falta rodar o SQL novo no Supabase para liberar a edição de jogos.') : error;
-        nav(`/jogo/${jogoId}`, { replace: true });
-        return;
+        idSalvo = jogoId;
+      } else {
+        const { data: novoId, error } = await supabase.rpc('lancar_jogo', { p_jogo: jogo, p_participacoes: participacoes });
+        if (error) throw error;
+        idSalvo = novoId as string;
+        if (resumo.trim()) await supabase.from('jogos').update({ resumo: resumo.trim() }).eq('id', idSalvo);
       }
-      const { data: novoId, error } = await supabase.rpc('lancar_jogo', { p_jogo: jogo, p_participacoes: participacoes });
-      if (error) throw error;
-      if (resumo.trim()) await supabase.from('jogos').update({ resumo: resumo.trim() }).eq('id', novoId);
-      nav(`/jogo/${novoId}`, { replace: true });
+      await salvarEscalacao(idSalvo);
+      nav(`/jogo/${idSalvo}`, { replace: true });
     } catch (e) {
       setErro(mensagemDeErro(e));
       setSalvando(false);
     }
+  }
+
+  // Escalação: grava no jogo e guarda os nomes novos no elenco do time
+  async function salvarEscalacao(id: string) {
+    const lista = escalacao.filter((e) => e.nome.trim()).map((e) => ({ ...e, nome: e.nome.trim() }));
+    if (!lista.length && !jogoId) return;
+    const { error } = await supabase.from('jogos').update({ escalacao: lista }).eq('id', id);
+    if (error && lista.length) throw /escalacao/.test(error.message) ? new Error('O jogo foi salvo, mas a escalação precisa do SQL novo no Supabase (aplicar-escalacao.sql).') : error;
+    const conhecidos = new Set(d.colegas.filter((c) => c.time_id === timeId).map((c) => c.nome.trim().toLowerCase()));
+    const novos = lista.filter((e) => !conhecidos.has(e.nome.toLowerCase()));
+    if (novos.length) await supabase.from('time_colegas').insert(novos.map((e) => ({ time_id: timeId, nome: e.nome, posicao: e.posicao, numero: e.numero ?? null })));
   }
 
   async function trocarEscudoAdversario(arq: File) {
@@ -423,6 +440,11 @@ export function LancarJogo() {
           </section>
         );
       })}
+
+      {time && (
+        <EditorEscalacao modalidade={time.modalidade} valor={escalacao} onChange={setEscalacao}
+          colegas={d.colegas.filter((c) => c.time_id === timeId)} />
+      )}
 
       <label className="campo">
         Resumo do jogo (opcional)

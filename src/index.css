@@ -216,3 +216,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .tipo-campeonato { background: rgba(255, 201, 40, 0.16); color: #ffd862; border: 1px solid rgba(255, 201, 40, 0.45); }
 .tipo-amistoso { background: rgba(169, 182, 204, 0.14); color: var(--text-muted); border: 1px solid var(--border); }
 .tipo-treino { background: rgba(47, 191, 113, 0.14); color: #7be0a8; border: 1px solid rgba(47, 191, 113, 0.4); }
+.escalado { display: grid; grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 3.2rem 36px; gap: 6px; align-items: center; }
+.escalado select, .escalado input { padding: 0 8px; font-size: 15px; }
+.escalado .remover { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; }
+.camisa { width: 30px; height: 30px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }

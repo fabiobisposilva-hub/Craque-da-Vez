@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
+import { VerEscalacao } from '../components/Escalacao';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES } from '../lib/tipos';
@@ -93,6 +94,8 @@ export function JogoDetalhe() {
           {jogo.local && ` · ${jogo.local}`}
         </p>
       </section>
+
+      <VerEscalacao escalacao={jogo.escalacao ?? []} />
 
       {jogo.resumo && (
         <section className="cartao pilha">

@@ -63,6 +63,22 @@ export interface Jogo {
   ao_vivo: boolean;
   resumo: string | null;
   lancado_por: string;
+  escalacao?: Escalado[] | null;
+}
+
+export interface Escalado {
+  nome: string;
+  posicao: string;
+  numero?: number | null;
+  titular: boolean;
+}
+
+export interface Colega {
+  id: string;
+  time_id: string;
+  nome: string;
+  posicao: string | null;
+  numero: number | null;
 }
 
 export interface Adversario {

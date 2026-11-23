@@ -4,9 +4,9 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from
 import { enviarEscudo } from '../lib/imagens';
 import { salvarEscudoTime } from '../lib/escudos';
 import { categoriaNatural, todasCategorias } from '../lib/categorias';
-import { useDados } from '../lib/dados';
+import { podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { POSICOES, SITUACOES, type Campeonato, type Time } from '../lib/tipos';
+import { POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
 
 const CORES = ['#E8000B', '#FFFFFF', '#1E6BFF', '#2FBF71', '#FFC928', '#111111', '#7A3CFF', '#FF7A00'];
 
@@ -270,6 +270,9 @@ export function TimeDetalhe() {
         {elenco.length > 0 && <p className="muted small">Posições do {time.modalidade}: {POSICOES[time.modalidade].join(', ')}.</p>}
       </section>
 
+      <ColegasDoTime timeId={time.id} modalidade={time.modalidade} colegas={d.colegas.filter((c) => c.time_id === time.id)}
+        podeEditar={souDono || elenco.some(({ j }) => podeEditar(d, j!.id))} onMudou={d.recarregar} />
+
       <Campeonatos timeId={time.id} categorias={cats.length ? cats : [...new Set(elenco.map(({ j }) => categoriaNatural(j!.data_nascimento)))]} camps={camps} podeEditar={souDono || time.tipo === 'particular'} onMudou={d.recarregar} />
 
       {jogos.length > 0 && (
@@ -354,6 +357,56 @@ function Campeonatos({ timeId, categorias, camps, podeEditar, onMudou }: { timeI
           )}
         </div>
       ))}
+    </section>
+  );
+}
+
+function ColegasDoTime({ timeId, modalidade, colegas, podeEditar, onMudou }: {
+  timeId: string; modalidade: keyof typeof POSICOES; colegas: Colega[]; podeEditar: boolean; onMudou: () => void;
+}) {
+  const [f, setF] = useState({ nome: '', posicao: '', numero: '' });
+  const [erro, setErro] = useState<string | null>(null);
+  async function adicionar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    const { error } = await supabase.from('time_colegas').insert({
+      time_id: timeId, nome: f.nome.trim(), posicao: f.posicao || null, numero: f.numero === '' ? null : Number(f.numero),
+    });
+    if (error) return setErro(/time_colegas/.test(error.message) ? 'Falta rodar o SQL da escalação no Supabase (aplicar-escalacao.sql).' : /duplicate|unique/i.test(error.message) ? 'Esse nome já está no elenco.' : mensagemDeErro(error));
+    setF({ nome: '', posicao: '', numero: '' });
+    onMudou();
+  }
+  async function remover(id: string) {
+    await supabase.from('time_colegas').delete().eq('id', id);
+    onMudou();
+  }
+  if (!podeEditar && !colegas.length) return null;
+  return (
+    <section className="pilha">
+      <div className="secao-titulo"><h2>Colegas do time</h2></div>
+      <p className="muted small">Quem joga junto e não tem conta no app. Eles aparecem prontos na escalação de cada jogo.</p>
+      {colegas.map((c) => (
+        <div key={c.id} className="cartao linha" style={{ padding: '10px 14px' }}>
+          <span className="num camisa">{c.numero ?? '–'}</span>
+          <b className="cresce">{c.nome}</b>
+          <span className="muted small">{c.posicao ?? ''}</span>
+          {podeEditar && <button className="link" aria-label={`Remover ${c.nome}`} onClick={() => remover(c.id)}>✕</button>}
+        </div>
+      ))}
+      {podeEditar && (
+        <form className="cartao pilha" onSubmit={adicionar}>
+          <div className="escalado" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 7.5rem) 3.6rem' }}>
+            <input id="colega-nome" required placeholder="Nome" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} aria-label="Nome do colega" />
+            <select id="colega-pos" value={f.posicao} onChange={(e) => setF({ ...f, posicao: e.target.value })} aria-label="Posição">
+              <option value="">Posição</option>
+              {POSICOES[modalidade].map((p) => <option key={p}>{p}</option>)}
+            </select>
+            <input id="colega-num" type="number" inputMode="numeric" min={0} max={99} placeholder="Nº" value={f.numero} onChange={(e) => setF({ ...f, numero: e.target.value })} aria-label="Número da camisa" />
+          </div>
+          <Erro msg={erro} />
+          <button className="btn btn-fantasma">+ Adicionar ao elenco</button>
+        </form>
+      )}
     </section>
   );
 }
