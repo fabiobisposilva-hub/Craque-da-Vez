@@ -91,3 +91,9 @@ set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
 select entrar_no_time('mag123', '10000000-0000-0000-0000-000000000001', 'Atacante', 9) = '20000000-0000-0000-0000-000000000003' as entrou_com_codigo;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 select count(*) = 1 as tecnico_ve_atleta_do_elenco from jogadores;
+
+-- Cadastro como o app faz: insert ... returning
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+insert into jogadores (nome, data_nascimento) values ('Irmã do Miguel','2019-02-01') returning nome;
+insert into times (nome, modalidade) values ('Time da Ana','society') returning nome;
