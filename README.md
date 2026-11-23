@@ -5,7 +5,7 @@
 App de carreira futebolística (base, várzea, semiprofissional e pelada). Especificação completa em
 [`docs/CRAQUE-DA-VEZ-documento-completo.md`](docs/CRAQUE-DA-VEZ-documento-completo.md).
 
-**Stack:** React + Vite (PWA mobile-first) no Netlify, Supabase (Auth, Postgres, RLS).
+**Stack:** React + Vite (PWA mobile-first) na Vercel (https://craquedavez.vercel.app, publica sozinha a cada push na `main`), Supabase (Auth, Postgres, RLS, Storage).
 
 ## O que já está pronto (etapas 1 a 6 do documento, mais parte da 7 e da 8)
 
