@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
 import { enviarEscudo } from '../lib/imagens';
+import { salvarEscudoTime } from '../lib/escudos';
 import { categoriaNatural, todasCategorias } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -211,7 +212,7 @@ export function TimeDetalhe() {
         </p>
         {souDono && (
           <EscolherImagem id="escudo-time" onArquivo={async (f) => {
-            try { const url = await enviarEscudo(f); await supabase.from('times').update({ escudo_url: url }).eq('id', time.id); d.recarregar(); }
+            try { await salvarEscudoTime(time.id, f); d.recarregar(); }
             catch (e) { alert(mensagemDeErro(e)); }
           }}>{time.escudo_url ? 'Trocar escudo' : '+ Escudo'}</EscolherImagem>
         )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
-import { enviarEscudo } from '../lib/imagens';
+import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -204,12 +204,7 @@ export function LancarJogo() {
     setEnviandoEscudo(true);
     setErro(null);
     try {
-      const url = await enviarEscudo(arq);
-      const meu = d.adversarios.find((a) => a.criado_por === d.meuId && a.nome.trim().toLowerCase() === nome.toLowerCase());
-      const r = meu
-        ? await supabase.from('adversarios').update({ escudo_url: url }).eq('id', meu.id)
-        : await supabase.from('adversarios').insert({ nome, escudo_url: url });
-      if (r.error) throw /adversarios/.test(r.error.message) ? new Error('Falta rodar o SQL novo no Supabase para salvar escudos de adversários.') : r.error;
+      await salvarEscudoAdversario(d.adversarios, d.meuId, nome, arq);
       await d.recarregar();
     } catch (e) {
       setErro(mensagemDeErro(e));
@@ -278,11 +273,24 @@ export function LancarJogo() {
       <Topo titulo={jogoId ? 'Editar jogo' : 'Lançar jogo'} voltar={!!jogoId} />
 
       <label className="campo">
-        Time
+        Nosso time
         <select id="lj-time" value={timeId} onChange={(e) => { setTimeId(e.target.value); setParts({}); }}>
           {d.times.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </label>
+      {time && (
+        <div className="linha">
+          <Escudo nome={time.nome} url={time.escudo_url} cor={time.cor} tamanho={44} />
+          {time.dono_id === d.meuId ? (
+            <EscolherImagem id="escudo-nosso" desativado={enviandoEscudo} onArquivo={async (arq) => {
+              setEnviandoEscudo(true); setErro(null);
+              try { await salvarEscudoTime(time.id, arq); await d.recarregar(); } catch (e) { setErro(mensagemDeErro(e)); } finally { setEnviandoEscudo(false); }
+            }}>{enviandoEscudo ? 'Enviando…' : time.escudo_url ? 'Trocar escudo do nosso time' : '+ Escudo do nosso time'}</EscolherImagem>
+          ) : (
+            <span className="muted small">Escudo cadastrado pelo técnico</span>
+          )}
+        </div>
+      )}
 
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="selo" style={{ marginBottom: 8 }}>Categoria disputada (Sub-10, Sub-11…)</legend>

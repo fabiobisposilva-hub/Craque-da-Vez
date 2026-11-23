@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Avatar, Erro, Escudo, Resultado, TipoJogo, Topo } from '../components/Comuns';
+import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
+import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES } from '../lib/tipos';
@@ -12,6 +13,21 @@ export function JogoDetalhe() {
   const [confirmando, setConfirmando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [enviando, setEnviando] = useState<'' | 'time' | 'adv'>('');
+
+  async function trocarEscudo(qual: 'time' | 'adv', arq: File, timeId: string, adversario: string) {
+    setEnviando(qual);
+    setErro(null);
+    try {
+      if (qual === 'time') await salvarEscudoTime(timeId, arq);
+      else await salvarEscudoAdversario(d.adversarios, d.meuId, adversario, arq);
+      await d.recarregar();
+    } catch (e) {
+      setErro(mensagemDeErro(e));
+    } finally {
+      setEnviando('');
+    }
+  }
 
   if (d.carregando) return <main className="tela" aria-busy="true" />;
   const jogo = d.jogos.find((g) => g.id === id);
@@ -49,6 +65,11 @@ export function JogoDetalhe() {
           <div className="pilha" style={{ alignItems: 'center', gap: 6 }}>
             <Escudo nome={time?.nome ?? '?'} url={time?.escudo_url} cor={time?.cor} tamanho={56} />
             <p className="small" style={{ fontWeight: 700 }}>{time?.nome}</p>
+            {time && time.dono_id === d.meuId && (
+              <EscolherImagem id="esc-time" className="link small" desativado={!!enviando} onArquivo={(f) => trocarEscudo('time', f, time.id, jogo.adversario)}>
+                {enviando === 'time' ? 'Enviando…' : time.escudo_url ? 'Trocar escudo' : '+ Escudo'}
+              </EscolherImagem>
+            )}
           </div>
           <div className="pilha" style={{ alignItems: 'center', gap: 4 }}>
             <div className="gols num" style={{ fontSize: 36 }}>{jogo.gols_pro} × {jogo.gols_contra}</div>
@@ -57,6 +78,9 @@ export function JogoDetalhe() {
           <div className="pilha" style={{ alignItems: 'center', gap: 6 }}>
             <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={56} />
             <p className="small" style={{ fontWeight: 700 }}>{jogo.adversario}</p>
+            <EscolherImagem id="esc-adv" className="link small" desativado={!!enviando} onArquivo={(f) => trocarEscudo('adv', f, jogo.time_id, jogo.adversario)}>
+              {enviando === 'adv' ? 'Enviando…' : escudoDoAdversario(d, jogo.adversario) ? 'Trocar escudo' : '+ Escudo'}
+            </EscolherImagem>
           </div>
         </div>
         <div style={{ textAlign: 'center' }}><TipoJogo jogo={jogo} campeonato={camp} /></div>
