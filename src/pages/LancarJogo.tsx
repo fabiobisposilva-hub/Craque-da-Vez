@@ -47,6 +47,9 @@ export function LancarJogo() {
   const [aoVivo, setAoVivo] = useState(false);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  useEffect(() => {
+    if (erro) document.querySelector('.erro')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [erro]);
   const [salvando, setSalvando] = useState(false);
 
   const time = d.times.find((t) => t.id === timeId);
@@ -217,11 +220,25 @@ export function LancarJogo() {
       </label>
 
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="selo" style={{ marginBottom: 8 }}>Categoria disputada</legend>
+        <legend className="selo" style={{ marginBottom: 8 }}>Categoria disputada (Sub-10, Sub-11…)</legend>
         <div className="chips">
           {categorias.map((c) => <button key={c} type="button" className="chip" aria-pressed={categoria === c} onClick={() => setCategoria(c)}>{c}</button>)}
         </div>
-        {!categorias.length && <p className="muted small">Coloque um jogador neste time para escolher a categoria.</p>}
+        {!categorias.length && (
+          <div className="aviso pilha">
+            <b style={{ color: 'var(--text)' }}>Nenhum jogador seu está no elenco do {time?.nome}.</b>
+            <span>Toque no jogador para colocá-lo neste time. Depois as categorias aparecem aqui.</span>
+            <div className="chips">
+              {d.jogadores.filter((j) => !d.vinculos.some((v) => v.jogador_id === j.id && v.time_id === timeId)).map((j) => (
+                <button key={j.id} type="button" className="chip" onClick={async () => {
+                  const { error } = await supabase.from('jogador_times').insert({ jogador_id: j.id, time_id: timeId });
+                  if (error) setErro(time?.tipo === 'tecnico' ? 'Para entrar no time de um técnico, use o código do time em Times → Entrar no time de um técnico.' : mensagemDeErro(error));
+                  else d.recarregar();
+                }}>+ {chamarDe(j)}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </fieldset>
 
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -251,7 +268,7 @@ export function LancarJogo() {
             </>
           )}
           <select id="lj-fase" value={fase} onChange={(e) => setFase(e.target.value)} aria-label="Fase">
-            <option value="">Fase (opcional)</option>
+            <option value="">Fase do campeonato (opcional)</option>
             {FASES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
@@ -301,7 +318,7 @@ export function LancarJogo() {
             </label>
             {x.jogou && (
               <>
-                <div className="linha"><span className="cresce">Gols</span><Contador valor={x.gols} onChange={(n) => setP(j.id, { gols: n })} rotulo={`gols de ${j.nome}`} /></div>
+                <div className="linha"><span className="cresce">Gols</span><Contador valor={x.gols} onChange={(n) => { setP(j.id, { gols: n }); const outros = elegiveis.reduce((t, o) => t + (o.id !== j.id && p(o.id).jogou ? p(o.id).gols : 0), 0); if (outros + n > golsPro) setGolsPro(outros + n); }} rotulo={`gols de ${j.nome}`} /></div>
                 <div className="linha"><span className="cresce">Assistências</span><Contador valor={x.assistencias} onChange={(n) => setP(j.id, { assistencias: n })} rotulo={`assistências de ${j.nome}`} /></div>
                 <div className="linha"><span className="cresce"><i className="cartao-ico am" /> Amarelos</span><Contador valor={x.amarelos} max={2} onChange={(n) => setP(j.id, { amarelos: n })} rotulo={`amarelos de ${j.nome}`} /></div>
                 <div className="chips">
