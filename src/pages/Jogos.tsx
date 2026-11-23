@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { dataCurta, Escudo, Resultado, Topo } from '../components/Comuns';
+import { dataCurta, Escudo, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { escudoDoAdversario, useDados } from '../lib/dados';
-import { chamarDe, FASES } from '../lib/tipos';
+import { chamarDe } from '../lib/tipos';
 
 export function Jogos() {
   const d = useDados();
@@ -43,8 +43,9 @@ export function Jogos() {
               <Escudo nome={j.adversario} url={escudoDoAdversario(d, j.adversario)} tamanho={36} />
               <div className="cresce">
                 <b className="num">{time?.nome} {j.gols_pro} × {j.gols_contra} {j.adversario}</b>
+                <div><TipoJogo jogo={j} campeonato={camp} /></div>
                 <p className="muted small">
-                  {dataCurta(j.data_hora)} · {j.categoria} · {camp ? `${camp.nome}${j.fase ? ' · ' + FASES.find(([k]) => k === j.fase)?.[1] : ''}` : j.tipo === 'treino' ? 'Treino' : 'Amistoso'}
+                  {dataCurta(j.data_hora)} · {j.categoria}
                   {j.ao_vivo && ' · ao vivo'}
                   {futuro && ' · agendado'}
                 </p>

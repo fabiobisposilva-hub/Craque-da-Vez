@@ -212,3 +212,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .com-papel .menu { background: rgba(11, 35, 64, 0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .com-papel .capa { background: transparent; }
 .com-papel .capa::after { display: none; }
+.tipo-jogo { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.tipo-campeonato { background: rgba(255, 201, 40, 0.16); color: #ffd862; border: 1px solid rgba(255, 201, 40, 0.45); }
+.tipo-amistoso { background: rgba(169, 182, 204, 0.14); color: var(--text-muted); border: 1px solid var(--border); }
+.tipo-treino { background: rgba(47, 191, 113, 0.14); color: #7be0a8; border: 1px solid rgba(47, 191, 113, 0.4); }

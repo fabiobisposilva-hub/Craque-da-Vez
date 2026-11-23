@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Avatar, Erro, Escudo, Resultado, Topo } from '../components/Comuns';
+import { Avatar, Erro, Escudo, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES } from '../lib/tipos';
@@ -59,6 +59,7 @@ export function JogoDetalhe() {
             <p className="small" style={{ fontWeight: 700 }}>{jogo.adversario}</p>
           </div>
         </div>
+        <div style={{ textAlign: 'center' }}><TipoJogo jogo={jogo} campeonato={camp} /></div>
         <p className="muted small" style={{ textAlign: 'center' }}>
           {data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} ·{' '}
           {data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}

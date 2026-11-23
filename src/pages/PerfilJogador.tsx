@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
+import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { enviarFotoJogador } from '../lib/imagens';
 import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
 import { categoriaNatural } from '../lib/categorias';
@@ -254,6 +254,7 @@ export function PerfilJogador() {
                 <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={32} />
                 <div className="cresce" style={{ minWidth: 0 }}>
                   <b className="num">{jogo.gols_pro} × {jogo.gols_contra}</b> {jogo.adversario}
+                  <div><TipoJogo jogo={jogo} campeonato={d.campeonatos.find((c) => c.id === jogo.campeonato_id)} /></div>
                   <p className="muted small">
                     {dataCurta(jogo.data_hora)} · {d.times.find((t) => t.id === jogo.time_id)?.nome} · {jogo.categoria}
                   </p>

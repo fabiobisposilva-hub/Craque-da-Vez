@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar } from '../components/Comuns';
+import { Avatar, dataCurta, Escudo, Resultado, TipoJogo } from '../components/Comuns';
 import { Logo } from '../components/Logo';
 import { categoriaNatural } from '../lib/categorias';
-import { useDados } from '../lib/dados';
+import { escudoDoAdversario, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { supabase } from '../lib/supabase';
-import type { Notificacao } from '../lib/tipos';
+import { chamarDe, type Notificacao } from '../lib/tipos';
 
 function textoNotificacao(n: Notificacao): string {
   const p = n.payload as Record<string, string | number>;
@@ -94,6 +94,51 @@ export function Inicio() {
           </Link>
         );
       })}
+
+      <UltimosJogos d={d} />
     </main>
+  );
+}
+
+function UltimosJogos({ d }: { d: ReturnType<typeof useDados> }) {
+  const agora = Date.now();
+  const jogos = d.jogos.filter((g) => !g.substituido_por && new Date(g.data_hora).getTime() <= agora).slice(0, 5);
+  if (!jogos.length) return null;
+  return (
+    <section className="pilha">
+      <div className="secao-titulo">
+        <h2>Últimos jogos</h2>
+        <Link to="/jogos" className="link">Ver todos</Link>
+      </div>
+      {jogos.map((g) => {
+        const time = d.times.find((t) => t.id === g.time_id);
+        const camp = d.campeonatos.find((c) => c.id === g.campeonato_id);
+        const destaques = d.participacoes
+          .filter((p) => p.jogo_id === g.id && (p.gols || p.assistencias || p.craque_do_jogo))
+          .map((p) => {
+            const j = d.jogadores.find((x) => x.id === p.jogador_id);
+            if (!j) return null;
+            const itens = [p.gols ? `${p.gols} gol${p.gols > 1 ? 's' : ''}` : '', p.assistencias ? `${p.assistencias} assist.` : ''].filter(Boolean).join(', ');
+            return `${p.craque_do_jogo ? '★ ' : ''}${chamarDe(j)}${itens ? `: ${itens}` : ''}`;
+          })
+          .filter(Boolean);
+        return (
+          <Link key={g.id} to={`/jogo/${g.id}`} className="cartao clicavel pilha" style={{ gap: 8 }}>
+            <div className="linha">
+              <Resultado r={g.resultado} />
+              <Escudo nome={g.adversario} url={escudoDoAdversario(d, g.adversario)} tamanho={36} />
+              <div className="cresce" style={{ minWidth: 0 }}>
+                <b className="num">{time?.nome} {g.gols_pro} × {g.gols_contra} {g.adversario}</b>
+                <p className="muted small">{dataCurta(g.data_hora)} · {g.categoria}</p>
+              </div>
+            </div>
+            <div className="chips" style={{ gap: 6 }}>
+              <TipoJogo jogo={g} campeonato={camp} />
+              {destaques.map((t) => <span key={t} className="tipo-jogo tipo-amistoso" style={{ color: 'var(--text)' }}>{t}</span>)}
+            </div>
+          </Link>
+        );
+      })}
+    </section>
   );
 }

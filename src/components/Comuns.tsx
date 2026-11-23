@@ -82,3 +82,19 @@ export function Contador({ valor, onChange, max, rotulo }: { valor: number; onCh
 export function dataCurta(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
 }
+
+/** Etiqueta do tipo de jogo: campeonato (com nome e fase), amistoso ou treino. */
+export function TipoJogo({ jogo, campeonato }: {
+  jogo: { tipo: 'amistoso' | 'treino' | 'campeonato'; fase: string | null };
+  campeonato?: { nome: string } | null;
+}) {
+  const fases: Record<string, string> = { grupos: 'Grupos', oitavas: 'Oitavas', quartas: 'Quartas', semifinal: 'Semifinal', final: 'Final' };
+  if (jogo.tipo === 'campeonato')
+    return (
+      <span className="tipo-jogo tipo-campeonato">
+        🏆 {campeonato?.nome ?? 'Campeonato'}{jogo.fase ? ` · ${fases[jogo.fase] ?? jogo.fase}` : ''}
+      </span>
+    );
+  if (jogo.tipo === 'treino') return <span className="tipo-jogo tipo-treino">⚽ Treino</span>;
+  return <span className="tipo-jogo tipo-amistoso">🤝 Amistoso</span>;
+}
