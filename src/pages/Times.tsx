@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Avatar, dataCurta, Erro, Resultado, Topo } from '../components/Comuns';
+import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
+import { enviarEscudo } from '../lib/imagens';
 import { categoriaNatural, todasCategorias } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -8,14 +9,8 @@ import { POSICOES, SITUACOES, type Campeonato, type Time } from '../lib/tipos';
 
 const CORES = ['#E8000B', '#FFFFFF', '#1E6BFF', '#2FBF71', '#FFC928', '#111111', '#7A3CFF', '#FF7A00'];
 
-function Escudo({ t }: { t: Pick<Time, 'nome' | 'cor'> }) {
-  const cor = t.cor ?? '#E8000B';
-  const claro = ['#FFFFFF', '#FFC928'].includes(cor.toUpperCase());
-  return (
-    <div className="avatar" style={{ borderRadius: 12, background: cor, borderColor: 'var(--border)', color: claro ? '#01162C' : '#fff' }} aria-hidden="true">
-      {t.nome.slice(0, 2).toUpperCase()}
-    </div>
-  );
+function EscudoTime({ t }: { t: Pick<Time, 'nome' | 'cor' | 'escudo_url'> }) {
+  return <Escudo nome={t.nome} url={t.escudo_url} cor={t.cor ?? '#E8000B'} />;
 }
 
 export function Times() {
@@ -39,7 +34,7 @@ export function Times() {
         return (
           <Link key={t.id} to={`/times/${t.id}`} className="cartao clicavel">
             <div className="linha">
-              <Escudo t={t} />
+              <EscudoTime t={t} />
               <div className="cresce">
                 <h3>{t.nome}</h3>
                 <p className="muted small">
@@ -89,12 +84,14 @@ export function NovoTime() {
   const [f, setF] = useState({ nome: '', modalidade: 'futsal' as Time['modalidade'], cor: CORES[0], tipo: 'particular' as Time['tipo'] });
   const [cats, setCats] = useState<string[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [escudo, setEscudo] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     if (f.tipo === 'tecnico' && cats.length === 0) return setErro('Escolha pelo menos uma categoria do time.');
-    const { data, error } = await supabase.from('times').insert({ ...f, nome: f.nome.trim() }).select('id').single();
+    const { data, error } = await supabase.from('times').insert({ ...f, nome: f.nome.trim(), escudo_url: escudo }).select('id').single();
     if (error) return setErro(mensagemDeErro(error));
     if (cats.length) {
       const r = await supabase.from('time_categorias').insert(cats.map((c) => ({ time_id: data.id, categoria: c })));
@@ -111,6 +108,13 @@ export function NovoTime() {
           Nome do time
           <input id="time-nome" required placeholder="Ex.: Magnus" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} />
         </label>
+        <div className="linha">
+          <Escudo nome={f.nome || '?'} url={escudo} cor={f.cor} />
+          <EscolherImagem id="novo-escudo" desativado={enviando} onArquivo={async (arq) => {
+            setEnviando(true); setErro(null);
+            try { setEscudo(await enviarEscudo(arq)); } catch (e) { setErro(mensagemDeErro(e)); } finally { setEnviando(false); }
+          }}>{enviando ? 'Enviando…' : escudo ? 'Trocar escudo' : '+ Foto do escudo'}</EscolherImagem>
+        </div>
         <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="selo" style={{ marginBottom: 8 }}>Modalidade</legend>
           <div className="chips">
@@ -201,10 +205,16 @@ export function TimeDetalhe() {
     <main className="tela">
       <Topo titulo={time.nome} />
       <div className="linha">
-        <Escudo t={time} />
+        <EscudoTime t={time} />
         <p className="muted small cresce">
           {time.modalidade[0].toUpperCase() + time.modalidade.slice(1)} · {time.tipo === 'tecnico' ? 'time do técnico' : 'particular'}
         </p>
+        {souDono && (
+          <EscolherImagem id="escudo-time" onArquivo={async (f) => {
+            try { const url = await enviarEscudo(f); await supabase.from('times').update({ escudo_url: url }).eq('id', time.id); d.recarregar(); }
+            catch (e) { alert(mensagemDeErro(e)); }
+          }}>{time.escudo_url ? 'Trocar escudo' : '+ Escudo'}</EscolherImagem>
+        )}
       </div>
       {souDono && time.tipo === 'tecnico' && (
         <div className="cartao">

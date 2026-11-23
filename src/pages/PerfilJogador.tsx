@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Avatar, dataCurta, Erro, Resultado, Topo } from '../components/Comuns';
+import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
+import { enviarFotoJogador } from '../lib/imagens';
 import { categoriaNatural } from '../lib/categorias';
-import { useDados } from '../lib/dados';
+import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { POSICOES, SITUACOES } from '../lib/tipos';
+import { iniciais, POSICOES, SITUACOES } from '../lib/tipos';
 
 const ROTULO_VIS = { publico: 'Público', aprovados: 'Só aprovados', privado: 'Privado' };
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -15,6 +16,24 @@ export function PerfilJogador() {
   const d = useDados();
   const jogador = d.jogadores.find((j) => j.id === id);
   const [filtro, setFiltro] = useState({ time: '', categoria: '', campeonato: '', temporada: '' });
+  const [enviando, setEnviando] = useState<'' | 'foto' | 'capa'>('');
+  const [erroFoto, setErroFoto] = useState<string | null>(null);
+
+  async function trocarImagem(tipo: 'foto' | 'capa', arquivo: File) {
+    if (!jogador) return;
+    setEnviando(tipo);
+    setErroFoto(null);
+    try {
+      const caminho = await enviarFotoJogador(jogador.id, arquivo, tipo);
+      const { error } = await supabase.from('jogadores').update(tipo === 'foto' ? { foto_url: caminho } : { capa_url: caminho }).eq('id', jogador.id);
+      if (error) throw error;
+      await d.recarregar();
+    } catch (e) {
+      setErroFoto(mensagemDeErro(e));
+    } finally {
+      setEnviando('');
+    }
+  }
 
   const todas = useMemo(() => (jogador ? linhasDoJogador(d.jogos, d.participacoes, jogador.id) : []), [d.jogos, d.participacoes, jogador]);
   const linhas = todas.filter(
@@ -44,20 +63,37 @@ export function PerfilJogador() {
   const natural = categoriaNatural(jogador.data_nascimento);
   const maxMes = Math.max(1, ...r.porMes.map((m) => m.gols));
   const temFiltro = Object.values(filtro).some(Boolean);
+  const editor = podeEditar(d, jogador.id);
+  // Números separados por time
+  const porTime = timesDoJogador
+    .map(({ t }) => ({ t, r: resumir(todas.filter((l) => l.jogo.time_id === t.id), jogador.data_nascimento) }))
+    .filter((x) => x.r.jogos > 0);
 
   return (
     <main className="tela">
-      <div className="capa" style={jogador.capa_url ? { backgroundImage: `url(${jogador.capa_url})` } : undefined}>
-        <Link to={`/jogador/${jogador.id}/editar`} className="btn btn-fantasma btn-pequeno">
-          <Lapis /> Editar perfil
-        </Link>
+      <div className="capa" style={jogador.capa_link ? { backgroundImage: `url(${jogador.capa_link})` } : undefined}>
+        {editor && (
+          <EscolherImagem id="trocar-capa" desativado={!!enviando} onArquivo={(f) => trocarImagem('capa', f)}>
+            {enviando === 'capa' ? 'Enviando…' : '🖼️ Escolher capa'}
+          </EscolherImagem>
+        )}
       </div>
       <div className="perfil-cabeca">
-        <Avatar jogador={jogador} grande />
-        <div className="cresce" style={{ paddingBottom: 4 }}>
+        {editor ? (
+          <label htmlFor="trocar-foto" className="avatar grande editavel" title="Trocar foto">
+            {jogador.foto_link ? <img src={jogador.foto_link} alt="" style={{ borderRadius: '50%' }} /> : <span>{iniciais(jogador.nome)}</span>}
+            <span className="selo-camera" aria-hidden="true">{enviando === 'foto' ? '…' : '📷'}</span>
+            <input id="trocar-foto" type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) trocarImagem('foto', f); }} />
+          </label>
+        ) : (
+          <Avatar jogador={jogador} grande />
+        )}
+        <div className="cresce chips" style={{ paddingBottom: 4 }}>
           <span className="etiqueta">🔒 {ROTULO_VIS[jogador.visibilidade]}</span>
+          {!editor && <span className="etiqueta">👀 Só visualização</span>}
         </div>
       </div>
+      <Erro msg={erroFoto} />
       <div className="linha" style={{ alignItems: 'flex-start' }}>
         <div className="cresce">
         <h1>{jogador.nome}</h1>
@@ -67,9 +103,11 @@ export function PerfilJogador() {
           {jogador.perna_dominante && ` · perna ${jogador.perna_dominante}`}
         </p>
         </div>
-        <Link to={`/jogador/${jogador.id}/editar`} className="voltar" aria-label="Alterar dados do jogador" title="Alterar dados do jogador" style={{ textDecoration: 'none' }}>
-          <Lapis />
-        </Link>
+        {editor && (
+          <Link to={`/jogador/${jogador.id}/editar`} className="voltar" aria-label="Alterar dados do jogador" title="Alterar dados do jogador" style={{ textDecoration: 'none' }}>
+            <Lapis />
+          </Link>
+        )}
       </div>
       {timesDoJogador.length > 0 && (
         <div className="chips">
@@ -85,7 +123,18 @@ export function PerfilJogador() {
         </div>
       )}
 
-      <Convites jogadorId={jogador.id} vinculos={vinculos.filter((v) => v.status === 'convidado').map((v) => ({ ...v, time: d.times.find((t) => t.id === v.time_id)?.nome ?? 'Time' }))} onMudou={d.recarregar} />
+      {editor && <Convites jogadorId={jogador.id} vinculos={vinculos.filter((v) => v.status === 'convidado').map((v) => ({ ...v, time: d.times.find((t) => t.id === v.time_id)?.nome ?? 'Time' }))} onMudou={d.recarregar} />}
+
+      {porTime.length > 1 && (
+        <div className="chips" role="tablist" aria-label="Separar por time">
+          <button className="chip" role="tab" aria-pressed={!filtro.time} onClick={() => setFiltro({ ...filtro, time: '' })}>Todos os times</button>
+          {porTime.map(({ t }) => (
+            <button key={t.id} className="chip" role="tab" aria-pressed={filtro.time === t.id} onClick={() => setFiltro({ ...filtro, time: t.id })}>
+              <Escudo nome={t.nome} url={t.escudo_url} cor={t.cor} tamanho={22} /> {t.nome}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="numeros">
         <div className="numero"><b>{r.jogos}</b><span>Jogos</span></div>
@@ -151,6 +200,24 @@ export function PerfilJogador() {
             )}
           </section>
 
+          {porTime.length > 1 && !filtro.time && (
+            <section className="cartao" style={{ overflowX: 'auto' }}>
+              <h3 style={{ marginBottom: 8 }}>Por time</h3>
+              <table className="tabela">
+                <thead><tr><th>Time</th><th className="n">J</th><th className="n">Gols</th><th className="n">Assist.</th><th className="n">Cart.</th><th className="n">Aprov.</th></tr></thead>
+                <tbody>
+                  {porTime.map(({ t, r: rt }) => (
+                    <tr key={t.id} onClick={() => setFiltro({ ...filtro, time: t.id })} style={{ cursor: 'pointer' }}>
+                      <td><span className="vs"><Escudo nome={t.nome} url={t.escudo_url} cor={t.cor} tamanho={24} /> {t.nome}</span></td>
+                      <td className="n">{rt.jogos}</td><td className="n"><b>{rt.gols}</b></td><td className="n">{rt.assistencias}</td><td className="n">{rt.cartoes}</td><td className="n">{rt.aproveitamento}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="muted small" style={{ marginTop: 8 }}>Toque num time para ver só os números dele.</p>
+            </section>
+          )}
+
           {r.porMes.length > 1 && (
             <section className="cartao">
               <h3>Gols mês a mês</h3>
@@ -178,13 +245,15 @@ export function PerfilJogador() {
           <section className="cartao">
             <h3 style={{ marginBottom: 12 }}>Últimos jogos</h3>
             {[...linhas].reverse().slice(0, 10).map(({ jogo, part }) => (
-              <div key={jogo.id} className="lista-jogo">
+              <Link key={jogo.id} to={`/jogo/${jogo.id}`} className="lista-jogo" style={{ color: 'inherit', textDecoration: 'none' }}>
                 <Resultado r={jogo.resultado} />
+                <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={32} />
                 <div className="cresce" style={{ minWidth: 0 }}>
                   <b className="num">{jogo.gols_pro} × {jogo.gols_contra}</b> {jogo.adversario}
                   <p className="muted small">
                     {dataCurta(jogo.data_hora)} · {d.times.find((t) => t.id === jogo.time_id)?.nome} · {jogo.categoria}
                   </p>
+                  {part.observacao && <p className="small" style={{ marginTop: 2 }}>“{part.observacao}”</p>}
                 </div>
                 <div className="small" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {part.craque_do_jogo && <span className="estrela" title="Craque do jogo">★ </span>}
@@ -193,14 +262,14 @@ export function PerfilJogador() {
                   {part.amarelos > 0 && <i className="cartao-ico am" title="Amarelo" />}
                   {part.vermelho && <> <i className="cartao-ico vm" title="Vermelho" /></>}
                 </div>
-              </div>
+              </Link>
             ))}
           </section>
         </>
       )}
 
-      <ColocarEmTime jogadorId={jogador.id} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />
-      <Responsaveis jogadorId={jogador.id} />
+      {editor && <ColocarEmTime jogadorId={jogador.id} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
+      {editor && <Responsaveis jogadorId={jogador.id} nome={jogador.apelido || jogador.nome.split(' ')[0]} />}
     </main>
   );
 }
@@ -290,48 +359,65 @@ function ColocarEmTime({ jogadorId, jaEsta, times, onMudou }: { jogadorId: strin
   );
 }
 
-function Responsaveis({ jogadorId }: { jogadorId: string }) {
+function Responsaveis({ jogadorId, nome }: { jogadorId: string; nome: string }) {
   const [lista, setLista] = useState<{ usuario_id: string; papel: string }[]>([]);
-  const [codigo, setCodigo] = useState<string | null>(null);
+  const [convite, setConvite] = useState<{ codigo: string; papel: 'responsavel' | 'leitor' } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
   useEffect(() => {
     supabase.from('jogador_responsaveis').select('usuario_id, papel').eq('jogador_id', jogadorId).eq('status', 'ativo')
       .then(({ data }) => setLista(data ?? []));
   }, [jogadorId]);
+  const editores = lista.filter((l) => l.papel !== 'leitor').length;
+  const leitores = lista.length - editores;
 
-  async function convidar() {
+  async function convidar(papel: 'responsavel' | 'leitor') {
     setErro(null);
-    const { data, error } = await supabase.from('convites_responsavel').insert({ jogador_id: jogadorId }).select('codigo').single();
-    if (error) setErro(mensagemDeErro(error));
-    else setCodigo(data.codigo);
+    setAviso(null);
+    const { data, error } = await supabase.from('convites_responsavel').insert({ jogador_id: jogadorId, papel }).select('codigo').single();
+    if (error) setErro(/papel/.test(error.message) ? 'Falta rodar o SQL novo no Supabase para liberar o convite só para ver.' : mensagemDeErro(error));
+    else setConvite({ codigo: data.codigo, papel });
   }
-  async function copiar() {
+
+  const mensagem = convite
+    ? `Oi! Te convidei para ${convite.papel === 'leitor' ? `acompanhar o ${nome}` : `cuidar junto comigo do ${nome}`} no Craque da Vez ⚽\n\n` +
+      `1. Abra ${location.origin}\n2. Toque em "Criar conta" (só maiores de 18)\n3. Em Perfil → Código de convite, digite: ${convite.codigo}\n\nO código vale por 7 dias.`
+    : '';
+
+  async function compartilhar() {
     try {
-      await navigator.clipboard.writeText(codigo!);
-      setCopiado(true);
+      if (navigator.share) {
+        await navigator.share({ title: 'Craque da Vez', text: mensagem });
+        return;
+      }
+      await navigator.clipboard.writeText(mensagem);
+      setAviso('Mensagem copiada. Cole no WhatsApp para enviar.');
     } catch {
-      /* o código continua visível para copiar à mão */
+      setAviso('Copie a mensagem abaixo e envie pelo WhatsApp.');
     }
   }
 
   return (
     <section className="cartao pilha">
-      <div className="secao-titulo">
-        <h3>Responsáveis</h3>
-        <span className="muted small num">{lista.length} de 4</span>
-      </div>
-      <p className="muted small">Pai, mãe, avó: até 4 pessoas podem editar este jogador. Cada uma entra com um código que você gera aqui.</p>
-      {codigo ? (
+      <h3>Família</h3>
+      <p className="muted small">
+        <b style={{ color: 'var(--text)' }}>Responsáveis</b> podem lançar jogos e alterar o jogador (até 4, você incluído: {editores} de 4).{' '}
+        <b style={{ color: 'var(--text)' }}>Só para ver</b>: avós, tios e amigos acompanham tudo, mas não alteram nada ({leitores} hoje).
+      </p>
+      {convite ? (
         <div className="pilha">
-          <div className="linha">
-            <b className="num cresce" style={{ fontSize: 26, letterSpacing: '0.12em' }}>{codigo}</b>
-            <button className="btn btn-fantasma btn-pequeno" onClick={copiar}>{copiado ? 'Copiado' : 'Copiar'}</button>
-          </div>
-          <p className="muted small">Vale por 7 dias e uma única vez. A pessoa cria a conta e digita o código em Perfil → Código de convite.</p>
+          <p className="selo">{convite.papel === 'leitor' ? 'Convite só para ver' : 'Convite de responsável'}</p>
+          <b className="num" style={{ fontSize: 26, letterSpacing: '0.12em' }}>{convite.codigo}</b>
+          <button className="btn btn-primario" onClick={compartilhar}>Enviar convite pelo WhatsApp</button>
+          <textarea id="msg-convite" readOnly value={mensagem} rows={6} onFocus={(e) => e.currentTarget.select()} aria-label="Mensagem do convite" />
+          {aviso && <p className="muted small">{aviso}</p>}
+          <button className="link" style={{ alignSelf: 'flex-start' }} onClick={() => setConvite(null)}>Fazer outro convite</button>
         </div>
       ) : (
-        lista.length < 4 && <button className="btn btn-fantasma" onClick={convidar}>Convidar responsável</button>
+        <div className="grade-2">
+          <button className="btn btn-fantasma" onClick={() => convidar('leitor')}>👀 Convidar só para ver</button>
+          <button className="btn btn-fantasma" onClick={() => convidar('responsavel')} disabled={editores >= 4}>✏️ Convidar responsável</button>
+        </div>
       )}
       <Erro msg={erro} />
     </section>

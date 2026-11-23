@@ -9,6 +9,7 @@ import { EditarJogador } from './pages/EditarJogador';
 import { Entrar, NovaSenha } from './pages/Entrar';
 import { Inicio } from './pages/Inicio';
 import { Jogos } from './pages/Jogos';
+import { JogoDetalhe } from './pages/JogoDetalhe';
 import { LancarJogo } from './pages/LancarJogo';
 import { PerfilJogador } from './pages/PerfilJogador';
 import { NovoTime, TimeDetalhe, Times } from './pages/Times';
@@ -37,6 +38,8 @@ function Rotas() {
       <Route element={<ComMenu />}>
         <Route path="/" element={<Inicio />} />
         <Route path="/jogos" element={<Jogos />} />
+        <Route path="/jogo/:id" element={<JogoDetalhe />} />
+        <Route path="/jogo/:id/editar" element={<LancarJogo key="editar" />} />
         <Route path="/lancar" element={<LancarJogo />} />
         <Route path="/times" element={<Times />} />
         <Route path="/times/:id" element={<TimeDetalhe />} />

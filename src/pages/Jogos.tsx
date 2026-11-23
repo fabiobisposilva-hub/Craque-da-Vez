@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { dataCurta, Resultado, Topo } from '../components/Comuns';
-import { useDados } from '../lib/dados';
+import { Link, useNavigate } from 'react-router-dom';
+import { dataCurta, Escudo, Resultado, Topo } from '../components/Comuns';
+import { escudoDoAdversario, useDados } from '../lib/dados';
 import { chamarDe, FASES } from '../lib/tipos';
 
 export function Jogos() {
   const d = useDados();
+  const nav = useNavigate();
   const [timeId, setTimeId] = useState('');
   const agora = Date.now();
   const jogos = d.jogos.filter((j) => !timeId || j.time_id === timeId);
@@ -35,9 +36,11 @@ export function Jogos() {
         const substituto = j.substituido_por ? d.jogos.find((g) => g.id === j.substituido_por) : null;
         const futuro = new Date(j.data_hora).getTime() > agora;
         return (
-          <article key={j.id} className="cartao pilha" style={j.substituido_por ? { opacity: 0.7 } : undefined}>
+          <article key={j.id} className="cartao pilha cartao clicavel" role="link" tabIndex={0} onClick={() => nav(`/jogo/${j.id}`)}
+            onKeyDown={(e) => { if (e.key === 'Enter') nav(`/jogo/${j.id}`); }} style={j.substituido_por ? { opacity: 0.7 } : undefined}>
             <div className="linha">
               <Resultado r={j.resultado} />
+              <Escudo nome={j.adversario} url={escudoDoAdversario(d, j.adversario)} tamanho={36} />
               <div className="cresce">
                 <b className="num">{time?.nome} {j.gols_pro} × {j.gols_contra} {j.adversario}</b>
                 <p className="muted small">
@@ -50,6 +53,7 @@ export function Jogos() {
                 <span className="etiqueta">{j.origem === 'tecnico' ? 'Oficial' : j.substituido_por ? 'Substituído' : 'Seu lançamento'}</span>
               )}
             </div>
+            {j.resumo && <p className="small muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {j.resumo}</p>}
             {parts.length > 0 && (
               <div className="chips">
                 {parts.map((p) => {

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Contador, Erro, Topo } from '../components/Comuns';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
+import { enviarEscudo } from '../lib/imagens';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
-import { useDados } from '../lib/dados';
+import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES, type Jogador } from '../lib/tipos';
 
@@ -19,17 +20,22 @@ interface Part {
 }
 const partVazia = (): Part => ({ jogou: true, gols: 0, assistencias: 0, amarelos: 0, vermelho: false, suspenso_proximo: false, titular: true, craque_do_jogo: false, observacao: '' });
 
-function agoraLocal() {
-  const d = new Date();
+function paraCampoData(data: Date) {
+  const d = new Date(data);
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 16);
 }
+const agoraLocal = () => paraCampoData(new Date());
 
 type Evento = { tipo: 'gol' | 'assist' | 'amarelo' | 'vermelho'; jogador: string } | { tipo: 'gol_time' | 'gol_adv' };
 
 export function LancarJogo() {
   const nav = useNavigate();
+  const { id: jogoId } = useParams();
   const d = useDados();
+  const [resumo, setResumo] = useState('');
+  const [carregouEdicao, setCarregouEdicao] = useState(false);
+  const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
   const [catsDoTime, setCatsDoTime] = useState<string[]>([]);
   const [categoria, setCategoria] = useState('');
@@ -64,13 +70,44 @@ export function LancarJogo() {
     if (!timeId) return;
     supabase.from('time_categorias').select('categoria').eq('time_id', timeId)
       .then(({ data }) => setCatsDoTime((data ?? []).map((c) => c.categoria)));
-    setCampId('');
-  }, [timeId]);
+    // Mantém o campeonato escolhido só se ele for deste time
+    setCampId((c) => (d.campeonatos.some((x) => x.id === c && x.time_id === timeId) ? c : ''));
+  }, [timeId, d.campeonatos]);
+
+  // Modo edição: preenche a tela com o jogo salvo
+  useEffect(() => {
+    if (!jogoId || carregouEdicao || d.carregando) return;
+    const g = d.jogos.find((x) => x.id === jogoId);
+    if (!g) return;
+    setTimeId(g.time_id);
+    setCategoria(g.categoria);
+    setTipo(g.tipo);
+    setCampId(g.campeonato_id ?? '');
+    setFase(g.fase ?? '');
+    setDataHora(paraCampoData(new Date(g.data_hora)));
+    setAdversario(g.adversario);
+    setLocal(g.local ?? '');
+    setCasaFora(g.casa_fora ?? '');
+    setGolsPro(g.gols_pro);
+    setGolsContra(g.gols_contra);
+    setResumo(g.resumo ?? '');
+    const novo: Record<string, Part> = {};
+    const doJogo = d.participacoes.filter((x) => x.jogo_id === g.id);
+    for (const v of d.vinculos.filter((v) => v.time_id === g.time_id)) {
+      const x = doJogo.find((y) => y.jogador_id === v.jogador_id);
+      novo[v.jogador_id] = x
+        ? { jogou: true, gols: x.gols, assistencias: x.assistencias, amarelos: x.amarelos, vermelho: x.vermelho, suspenso_proximo: x.suspenso_proximo, titular: x.titular, craque_do_jogo: x.craque_do_jogo, observacao: x.observacao ?? '' }
+        : { ...partVazia(), jogou: false };
+    }
+    setParts(novo);
+    setCarregouEdicao(true);
+  }, [jogoId, carregouEdicao, d.carregando, d.jogos, d.participacoes, d.vinculos]);
 
   const elenco: Jogador[] = useMemo(() => {
     const ids = new Set(d.vinculos.filter((v) => v.time_id === timeId && v.status === 'ativo').map((v) => v.jogador_id));
-    return d.jogadores.filter((j) => ids.has(j.id));
-  }, [d.vinculos, d.jogadores, timeId]);
+    // Só os jogadores que eu posso lançar (família convidada só para ver fica de fora)
+    return d.jogadores.filter((j) => ids.has(j.id) && (podeEditar(d, j.id) || time?.dono_id === d.meuId));
+  }, [d, timeId, time]);
 
   // Categorias oferecidas: as do time do técnico, ou as que o elenco pode jogar
   const categorias = useMemo(() => {
@@ -137,6 +174,7 @@ export function LancarJogo() {
         campeonato_id = r.data.id;
       }
       const jogo = {
+        resumo: resumo.trim(),
         time_id: timeId, categoria, data_hora: new Date(dataHora).toISOString(), adversario: adversario.trim(), tipo,
         campeonato_id, fase: tipo === 'campeonato' ? fase : '', local, casa_fora: casaFora, gols_pro: golsPro, gols_contra: golsContra, ao_vivo: aoVivo,
       };
@@ -144,16 +182,43 @@ export function LancarJogo() {
         const { jogou: _jogou, ...resto } = p(j.id);
         return { jogador_id: j.id, ...resto };
       });
-      const { error } = await supabase.rpc('lancar_jogo', { p_jogo: jogo, p_participacoes: participacoes });
+      if (jogoId) {
+        const { error } = await supabase.rpc('editar_jogo', { p_jogo_id: jogoId, p_jogo: jogo, p_participacoes: participacoes });
+        if (error) throw /editar_jogo/.test(error.message) ? new Error('Falta rodar o SQL novo no Supabase para liberar a edição de jogos.') : error;
+        nav(`/jogo/${jogoId}`, { replace: true });
+        return;
+      }
+      const { data: novoId, error } = await supabase.rpc('lancar_jogo', { p_jogo: jogo, p_participacoes: participacoes });
       if (error) throw error;
-      nav(elegiveis.length === 1 ? `/jogador/${elegiveis[0].id}` : '/jogos', { replace: true });
+      if (resumo.trim()) await supabase.from('jogos').update({ resumo: resumo.trim() }).eq('id', novoId);
+      nav(`/jogo/${novoId}`, { replace: true });
     } catch (e) {
       setErro(mensagemDeErro(e));
       setSalvando(false);
     }
   }
 
-  if (d.carregando) return <main className="tela" aria-busy="true" />;
+  async function trocarEscudoAdversario(arq: File) {
+    const nome = adversario.trim();
+    if (!nome) return setErro('Digite o nome do adversário antes de escolher o escudo.');
+    setEnviandoEscudo(true);
+    setErro(null);
+    try {
+      const url = await enviarEscudo(arq);
+      const meu = d.adversarios.find((a) => a.criado_por === d.meuId && a.nome.trim().toLowerCase() === nome.toLowerCase());
+      const r = meu
+        ? await supabase.from('adversarios').update({ escudo_url: url }).eq('id', meu.id)
+        : await supabase.from('adversarios').insert({ nome, escudo_url: url });
+      if (r.error) throw /adversarios/.test(r.error.message) ? new Error('Falta rodar o SQL novo no Supabase para salvar escudos de adversários.') : r.error;
+      await d.recarregar();
+    } catch (e) {
+      setErro(mensagemDeErro(e));
+    } finally {
+      setEnviandoEscudo(false);
+    }
+  }
+
+  if (d.carregando || (jogoId && !carregouEdicao)) return <main className="tela" aria-busy="true" />;
   if (!d.times.length)
     return (
       <main className="tela">
@@ -210,7 +275,7 @@ export function LancarJogo() {
 
   return (
     <main className="tela">
-      <Topo titulo="Lançar jogo" voltar={false} />
+      <Topo titulo={jogoId ? 'Editar jogo' : 'Lançar jogo'} voltar={!!jogoId} />
 
       <label className="campo">
         Time
@@ -277,8 +342,19 @@ export function LancarJogo() {
       <div className="grade-2">
         <label className="campo" style={{ gridColumn: '1 / -1' }}>
           Adversário
-          <input id="lj-adv" required value={adversario} onChange={(e) => setAdversario(e.target.value)} />
+          <input id="lj-adv" required list="lista-adversarios" autoComplete="off" value={adversario} onChange={(e) => setAdversario(e.target.value)} />
+          <datalist id="lista-adversarios">
+            {[...new Set([...d.adversarios.map((a) => a.nome), ...d.jogos.map((g) => g.adversario)])].sort().map((n) => <option key={n} value={n} />)}
+          </datalist>
         </label>
+        {adversario.trim() && (
+          <div className="linha" style={{ gridColumn: '1 / -1' }}>
+            <Escudo nome={adversario} url={escudoDoAdversario(d, adversario)} tamanho={44} />
+            <EscolherImagem id="escudo-adv" desativado={enviandoEscudo} onArquivo={trocarEscudoAdversario}>
+              {enviandoEscudo ? 'Enviando…' : escudoDoAdversario(d, adversario) ? 'Trocar escudo do adversário' : '+ Escudo do adversário'}
+            </EscolherImagem>
+          </div>
+        )}
         <label className="campo" style={{ gridColumn: '1 / -1' }}>
           Data e horário
           <input id="lj-data" type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} />
@@ -293,9 +369,11 @@ export function LancarJogo() {
         </label>
       </div>
 
-      <button type="button" className="btn btn-contorno ao-vivo-btn" onClick={() => { if (!adversario.trim()) return setErro('Informe o adversário para começar ao vivo.'); setErro(null); setAoVivo(true); }}>
-        ● Começar modo ao vivo
-      </button>
+      {!jogoId && (
+        <button type="button" className="btn btn-contorno ao-vivo-btn" onClick={() => { if (!adversario.trim()) return setErro('Informe o adversário para começar ao vivo.'); setErro(null); setAoVivo(true); }}>
+          ● Começar modo ao vivo
+        </button>
+      )}
 
       <section className="cartao placar" aria-label="Placar">
         <div><p className="muted small">{nomeTime}</p><Contador valor={golsPro} onChange={setGolsPro} rotulo={`gols do ${nomeTime}`} /></div>
@@ -331,18 +409,23 @@ export function LancarJogo() {
                   <button type="button" className="chip" aria-pressed={x.titular} onClick={() => setP(j.id, { titular: !x.titular })}>{x.titular ? 'Titular' : 'Reserva'}</button>
                   <button type="button" className="chip" aria-pressed={x.craque_do_jogo} onClick={() => setP(j.id, { craque_do_jogo: !x.craque_do_jogo })}>⭐ Craque do jogo</button>
                 </div>
-                <input id={`lj-obs-${j.id}`} placeholder="Observação (opcional)" value={x.observacao} onChange={(e) => setP(j.id, { observacao: e.target.value })} aria-label={`Observação sobre ${j.nome}`} />
+                <input id={`lj-obs-${j.id}`} placeholder="Como foi o gol / observação (opcional)" value={x.observacao} onChange={(e) => setP(j.id, { observacao: e.target.value })} aria-label={`Observação sobre ${j.nome}`} />
               </>
             )}
           </section>
         );
       })}
 
+      <label className="campo">
+        Resumo do jogo (opcional)
+        <textarea id="lj-resumo" rows={4} placeholder="Como foi a partida, como saíram os gols, destaques…" value={resumo} onChange={(e) => setResumo(e.target.value)} />
+      </label>
+
       {time?.tipo === 'tecnico' && (
         <p className="aviso">Se o técnico lançar este mesmo jogo, a versão dele passa a valer como oficial e você recebe um aviso das diferenças.</p>
       )}
       <Erro msg={erro} />
-      <button className="btn btn-primario" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar jogo'}</button>
+      <button className="btn btn-primario" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : jogoId ? 'Salvar alterações' : 'Salvar jogo'}</button>
     </main>
   );
 }

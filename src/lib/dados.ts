@@ -1,38 +1,71 @@
 import { useCallback, useEffect, useState } from 'react';
+import { linksDasFotos } from './imagens';
 import { supabase } from './supabase';
-import type { Campeonato, Jogador, JogadorTime, Jogo, Participacao, Time } from './tipos';
+import type { Adversario, Campeonato, Jogador, JogadorTime, Jogo, Papel, Participacao, Time } from './tipos';
 
 export interface Dados {
+  meuId: string | null;
   jogadores: Jogador[];
   times: Time[];
   vinculos: JogadorTime[];
   jogos: Jogo[];
   participacoes: Participacao[];
   campeonatos: Campeonato[];
+  adversarios: Adversario[];
+  /** Meu papel em cada jogador: titular/responsável editam, leitor só vê. */
+  papeis: Record<string, Papel>;
 }
 
-const vazio: Dados = { jogadores: [], times: [], vinculos: [], jogos: [], participacoes: [], campeonatos: [] };
+const vazio: Dados = { meuId: null, jogadores: [], times: [], vinculos: [], jogos: [], participacoes: [], campeonatos: [], adversarios: [], papeis: {} };
 
 /** Tudo o que o usuário pode ver (a RLS do banco limita). Escala de família e time: cabe numa carga só. */
 export async function carregarTudo(): Promise<Dados> {
-  const [j, t, v, g, p, c] = await Promise.all([
+  const { data: u } = await supabase.auth.getUser();
+  const meuId = u.user?.id ?? null;
+  const [j, t, v, g, p, c, a, r] = await Promise.all([
     supabase.from('jogadores').select('*').order('nome'),
     supabase.from('times').select('*').order('nome'),
     supabase.from('jogador_times').select('*'),
     supabase.from('jogos').select('*').order('data_hora', { ascending: false }),
     supabase.from('jogo_participacoes').select('*'),
     supabase.from('campeonatos').select('*').order('temporada', { ascending: false }),
+    supabase.from('adversarios').select('*'),
+    supabase.from('jogador_responsaveis').select('jogador_id, papel').eq('usuario_id', meuId ?? '').eq('status', 'ativo'),
   ]);
   const erro = j.error ?? t.error ?? v.error ?? g.error ?? p.error ?? c.error;
   if (erro) throw erro;
+  const jogadores = j.data as Jogador[];
+  const links = await linksDasFotos(jogadores.flatMap((x) => [x.foto_url ?? '', x.capa_url ?? '']));
+  for (const x of jogadores) {
+    x.foto_link = x.foto_url ? (links[x.foto_url] ?? (x.foto_url.startsWith('http') ? x.foto_url : null)) : null;
+    x.capa_link = x.capa_url ? (links[x.capa_url] ?? (x.capa_url.startsWith('http') ? x.capa_url : null)) : null;
+  }
+  const papeis: Record<string, Papel> = {};
+  for (const linha of (r.data ?? []) as { jogador_id: string; papel: Papel }[]) papeis[linha.jogador_id] = linha.papel;
   return {
-    jogadores: j.data as Jogador[],
+    meuId,
+    jogadores,
     times: t.data as Time[],
     vinculos: v.data as JogadorTime[],
     jogos: g.data as Jogo[],
     participacoes: p.data as Participacao[],
     campeonatos: c.data as Campeonato[],
+    adversarios: a.error ? [] : (a.data as Adversario[]), // antes do SQL novo a tabela não existe
+    papeis,
   };
+}
+
+/** Posso editar este jogador? (família convidada só para ver não pode) */
+export function podeEditar(d: Pick<Dados, 'papeis'>, jogadorId: string): boolean {
+  const p = d.papeis[jogadorId];
+  return p === 'titular' || p === 'responsavel';
+}
+
+/** Escudo do adversário pelo nome: o meu primeiro, depois o de qualquer usuário. */
+export function escudoDoAdversario(d: Pick<Dados, 'adversarios' | 'meuId'>, nome: string): string | null {
+  const n = nome.trim().toLowerCase();
+  const iguais = d.adversarios.filter((a) => a.nome.trim().toLowerCase() === n && a.escudo_url);
+  return (iguais.find((a) => a.criado_por === d.meuId) ?? iguais[0])?.escudo_url ?? null;
 }
 
 export function useDados() {

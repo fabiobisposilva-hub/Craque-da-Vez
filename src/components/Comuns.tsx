@@ -16,11 +16,35 @@ export function Topo({ titulo, voltar = true, children }: { titulo: string; volt
   );
 }
 
-export function Avatar({ jogador, grande, numero }: { jogador: Pick<Jogador, 'nome' | 'foto_url'>; grande?: boolean; numero?: number | null }) {
+export function Avatar({ jogador, grande, numero }: { jogador: Pick<Jogador, 'nome' | 'foto_link'>; grande?: boolean; numero?: number | null }) {
   return (
     <div className={'avatar' + (grande ? ' grande' : '')}>
-      {jogador.foto_url ? <img src={jogador.foto_url} alt="" /> : numero != null && !grande ? numero : iniciais(jogador.nome)}
+      {jogador.foto_link ? <img src={jogador.foto_link} alt="" /> : numero != null && !grande ? numero : iniciais(jogador.nome)}
     </div>
+  );
+}
+
+/** Escudo de time ou adversário: a imagem, ou as iniciais na cor do time. */
+export function Escudo({ nome, url, cor, tamanho = 56 }: { nome: string; url?: string | null; cor?: string | null; tamanho?: number }) {
+  const fundo = cor ?? 'var(--surface-2)';
+  const claro = ['#FFFFFF', '#FFC928'].includes((cor ?? '').toUpperCase());
+  return (
+    <div className="escudo" style={{ width: tamanho, height: tamanho, background: url ? 'var(--surface-2)' : fundo, color: claro ? '#01162C' : '#fff', fontSize: tamanho * 0.34 }} aria-hidden="true">
+      {url ? <img src={url} alt="" /> : nome.trim().slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+/** Botão que abre a galeria/câmera do celular para escolher uma imagem. */
+export function EscolherImagem({ id, onArquivo, children, className = 'btn btn-fantasma btn-pequeno', desativado }: {
+  id: string; onArquivo: (f: File) => void; children: React.ReactNode; className?: string; desativado?: boolean;
+}) {
+  return (
+    <label htmlFor={id} className={className} style={{ cursor: desativado ? 'default' : 'pointer', opacity: desativado ? 0.6 : 1 }}>
+      {children}
+      <input id={id} type="file" accept="image/*" hidden disabled={desativado}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onArquivo(f); }} />
+    </label>
   );
 }
 

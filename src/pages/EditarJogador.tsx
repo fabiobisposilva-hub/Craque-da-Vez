@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Erro, Topo } from '../components/Comuns';
+import { Erro, EscolherImagem, Topo } from '../components/Comuns';
+import { enviarFotoJogador, linksDasFotos } from '../lib/imagens';
 import { categoriaNatural, categoriasElegiveis, idadeEmAnos } from '../lib/categorias';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import type { Jogador, Visibilidade } from '../lib/tipos';
+import { iniciais, type Jogador, type Visibilidade } from '../lib/tipos';
 
 const VIS: [Visibilidade, string, string][] = [
   ['aprovados', 'Só aprovados', 'Só quem você aprovar vê o perfil'],
@@ -17,12 +18,36 @@ export function EditarJogador() {
   const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [imgs, setImgs] = useState<{ foto: string | null; capa: string | null }>({ foto: null, capa: null });
+  const [enviando, setEnviando] = useState('');
+
+  async function mostrarImagens(foto: string | null, capa: string | null) {
+    const links = await linksDasFotos([foto ?? '', capa ?? '']);
+    setImgs({ foto: foto ? links[foto] ?? null : null, capa: capa ? links[capa] ?? null : null });
+  }
+
+  async function trocar(tipo: 'foto' | 'capa', arq: File) {
+    if (!id) return;
+    setEnviando(tipo);
+    setErro(null);
+    try {
+      const caminho = await enviarFotoJogador(id, arq, tipo);
+      const { data, error } = await supabase.from('jogadores').update(tipo === 'foto' ? { foto_url: caminho } : { capa_url: caminho }).eq('id', id).select('foto_url, capa_url').single();
+      if (error) throw error;
+      await mostrarImagens(data.foto_url, data.capa_url);
+    } catch (e) {
+      setErro(mensagemDeErro(e));
+    } finally {
+      setEnviando('');
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
     supabase.from('jogadores').select('*').eq('id', id).single().then(({ data }) => {
       if (data) {
         const j = data as Jogador;
+        mostrarImagens(j.foto_url, j.capa_url);
         setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
       }
     });
@@ -50,6 +75,22 @@ export function EditarJogador() {
   return (
     <main className="tela sem-menu">
       <Topo titulo={id ? 'Editar jogador' : 'Novo jogador'} />
+      {id ? (
+        <section className="cartao pilha">
+          <h3>Fotos</h3>
+          <div className="linha">
+            <div className="avatar grande">{imgs.foto ? <img src={imgs.foto} alt="" /> : iniciais(f.nome || '?')}</div>
+            <div className="pilha cresce">
+              <EscolherImagem id="ed-foto" desativado={!!enviando} onArquivo={(a) => trocar('foto', a)}>{enviando === 'foto' ? 'Enviando…' : '📷 Foto do jogador'}</EscolherImagem>
+              <EscolherImagem id="ed-capa" desativado={!!enviando} onArquivo={(a) => trocar('capa', a)}>{enviando === 'capa' ? 'Enviando…' : '🖼️ Fundo do perfil (capa)'}</EscolherImagem>
+            </div>
+          </div>
+          {imgs.capa && <div style={{ height: 80, borderRadius: 12, backgroundImage: `url(${imgs.capa})`, backgroundSize: 'cover', backgroundPosition: 'center' }} aria-label="Capa atual" />}
+          <p className="muted small">A foto aparece redonda no lugar das iniciais. Só a família vê, a menos que você ligue “Mostrar foto no perfil público”.</p>
+        </section>
+      ) : (
+        <p className="aviso">Depois de cadastrar, você pode colocar a foto do jogador e o fundo do perfil.</p>
+      )}
       <form className="pilha" onSubmit={salvar}>
         <label className="campo">
           Nome do atleta

@@ -10,6 +10,9 @@ export interface Jogador {
   foto_publica: boolean;
   capa_url: string | null;
   visibilidade: Visibilidade;
+  /** Links temporários para mostrar as fotos privadas (preenchidos ao carregar). */
+  foto_link?: string | null;
+  capa_link?: string | null;
 }
 
 export interface Time {
@@ -58,7 +61,18 @@ export interface Jogo {
   oficial: boolean;
   substituido_por: string | null;
   ao_vivo: boolean;
+  resumo: string | null;
+  lancado_por: string;
 }
+
+export interface Adversario {
+  id: string;
+  nome: string;
+  escudo_url: string | null;
+  criado_por: string;
+}
+
+export type Papel = 'titular' | 'responsavel' | 'leitor';
 
 export interface Participacao {
   jogo_id: string;
