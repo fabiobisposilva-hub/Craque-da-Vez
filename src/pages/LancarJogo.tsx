@@ -4,7 +4,7 @@ import { Contador, Erro, Topo } from '../components/Comuns';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { FASES, type Jogador } from '../lib/tipos';
+import { chamarDe, FASES, type Jogador } from '../lib/tipos';
 
 interface Part {
   jogou: boolean;
@@ -179,7 +179,7 @@ export function LancarJogo() {
           <div><p className="muted small">{adversario}</p><div className="gols">{golsContra}</div></div>
         </section>
         {elegiveis.map((j) => {
-          const primeiro = j.nome.split(' ')[0];
+          const primeiro = chamarDe(j);
           return (
             <section key={j.id} className="pilha">
               <button className="btn btn-primario ao-vivo-btn" onClick={() => registrar({ tipo: 'gol', jogador: j.id })}>

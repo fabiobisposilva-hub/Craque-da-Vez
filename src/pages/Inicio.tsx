@@ -81,7 +81,7 @@ export function Inicio() {
             <div className="linha">
               <Avatar jogador={j} />
               <div className="cresce">
-                <h3>{j.nome}</h3>
+                <h3>{j.nome}{j.apelido && <span style={{ color: 'var(--accent-text)' }}> “{j.apelido}”</span>}</h3>
                 <p className="muted small">
                   {categoriaNatural(j.data_nascimento)} · {times.length ? times.join(' · ') : 'sem time'}
                 </p>

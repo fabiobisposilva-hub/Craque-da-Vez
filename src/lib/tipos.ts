@@ -3,6 +3,7 @@ export type Visibilidade = 'publico' | 'aprovados' | 'privado';
 export interface Jogador {
   id: string;
   nome: string;
+  apelido: string | null;
   data_nascimento: string;
   perna_dominante: 'direita' | 'esquerda' | 'ambidestro' | null;
   foto_url: string | null;
@@ -100,6 +101,11 @@ export const SITUACOES: Record<Campeonato['situacao'], string> = {
   vice: '🥈 Vice',
   eliminado: 'Eliminado',
 };
+
+/** Como chamar o jogador nos botões: apelido ou primeiro nome. */
+export function chamarDe(j: { nome: string; apelido?: string | null }): string {
+  return j.apelido?.trim() || j.nome.trim().split(/\s+/)[0];
+}
 
 export function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/);

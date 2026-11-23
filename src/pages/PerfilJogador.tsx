@@ -49,7 +49,7 @@ export function PerfilJogador() {
     <main className="tela">
       <div className="capa" style={jogador.capa_url ? { backgroundImage: `url(${jogador.capa_url})` } : undefined}>
         <Link to={`/jogador/${jogador.id}/editar`} className="btn btn-fantasma btn-pequeno">
-          Editar
+          <Lapis /> Editar perfil
         </Link>
       </div>
       <div className="perfil-cabeca">
@@ -58,12 +58,18 @@ export function PerfilJogador() {
           <span className="etiqueta">🔒 {ROTULO_VIS[jogador.visibilidade]}</span>
         </div>
       </div>
-      <div>
+      <div className="linha" style={{ alignItems: 'flex-start' }}>
+        <div className="cresce">
         <h1>{jogador.nome}</h1>
+        {jogador.apelido && <p style={{ fontWeight: 700, color: 'var(--accent-text)' }}>“{jogador.apelido}”</p>}
         <p className="muted">
           {natural} · {jogador.data_nascimento.slice(0, 4)}
           {jogador.perna_dominante && ` · perna ${jogador.perna_dominante}`}
         </p>
+        </div>
+        <Link to={`/jogador/${jogador.id}/editar`} className="voltar" aria-label="Alterar dados do jogador" title="Alterar dados do jogador" style={{ textDecoration: 'none' }}>
+          <Lapis />
+        </Link>
       </div>
       {timesDoJogador.length > 0 && (
         <div className="chips">
@@ -329,5 +335,14 @@ function Responsaveis({ jogadorId }: { jogadorId: string }) {
       )}
       <Erro msg={erro} />
     </section>
+  );
+}
+
+function Lapis() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
   );
 }

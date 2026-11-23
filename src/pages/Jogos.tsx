@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { dataCurta, Resultado, Topo } from '../components/Comuns';
 import { useDados } from '../lib/dados';
-import { FASES } from '../lib/tipos';
+import { chamarDe, FASES } from '../lib/tipos';
 
 export function Jogos() {
   const d = useDados();
@@ -53,7 +53,8 @@ export function Jogos() {
             {parts.length > 0 && (
               <div className="chips">
                 {parts.map((p) => {
-                  const nome = d.jogadores.find((x) => x.id === p.jogador_id)?.nome.split(' ')[0];
+                  const jog = d.jogadores.find((x) => x.id === p.jogador_id);
+                  const nome = jog ? chamarDe(jog) : '';
                   return (
                     <span key={p.jogador_id} className="etiqueta">
                       {p.craque_do_jogo && <span className="estrela">★</span>}

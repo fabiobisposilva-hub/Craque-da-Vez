@@ -14,7 +14,7 @@ const VIS: [Visibilidade, string, string][] = [
 export function EditarJogador() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [f, setF] = useState({ nome: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
+  const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -23,7 +23,7 @@ export function EditarJogador() {
     supabase.from('jogadores').select('*').eq('id', id).single().then(({ data }) => {
       if (data) {
         const j = data as Jogador;
-        setF({ nome: j.nome, data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
+        setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
       }
     });
   }, [id]);
@@ -34,7 +34,9 @@ export function EditarJogador() {
     e.preventDefault();
     setSalvando(true);
     setErro(null);
-    const linha = { ...f, nome: f.nome.trim(), perna_dominante: f.perna_dominante || null };
+    const { apelido, ...resto } = f;
+    // Só manda o apelido quando preenchido (ou ao apagar um existente), para funcionar mesmo antes do SQL do apelido
+    const linha = { ...resto, nome: f.nome.trim(), perna_dominante: f.perna_dominante || null, ...(apelido.trim() || id ? { apelido: apelido.trim() || null } : {}) };
     const r = id
       ? await supabase.from('jogadores').update(linha).eq('id', id).select('id').single()
       : await supabase.from('jogadores').insert(linha).select('id').single();
@@ -52,6 +54,10 @@ export function EditarJogador() {
         <label className="campo">
           Nome do atleta
           <input id="jog-nome" required value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} />
+        </label>
+        <label className="campo">
+          Apelido (opcional)
+          <input id="jog-apelido" maxLength={30} placeholder="Como chamam ele no time" value={f.apelido} onChange={(e) => setF({ ...f, apelido: e.target.value })} />
         </label>
         <label className="campo">
           Data de nascimento
