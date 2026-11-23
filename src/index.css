@@ -200,3 +200,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .avatar.editavel { position: relative; cursor: pointer; }
 .selo-camera { position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; font-size: 15px; border: 3px solid var(--bg); }
 .vs { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* Papel de parede: imagem fixa atrás do app inteiro */
+.papel-de-parede { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; pointer-events: none; }
+.papel-de-parede-veu { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(1, 22, 44, 0.55) 0%, rgba(1, 22, 44, 0.78) 40%, rgba(1, 22, 44, 0.9) 100%); }
+.app { position: relative; z-index: 1; }
+.com-papel .cartao, .com-papel .numero, .com-papel input, .com-papel select, .com-papel textarea, .com-papel .chip:not([aria-pressed='true']) {
+  background-color: rgba(11, 35, 64, 0.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.com-papel .menu { background: rgba(11, 35, 64, 0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.com-papel .capa { background: transparent; }
+.com-papel .capa::after { display: none; }

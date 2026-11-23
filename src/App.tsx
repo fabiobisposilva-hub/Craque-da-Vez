@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { Menu } from './components/Menu';
+import { PapelDeParede } from './components/PapelDeParede';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configurado } from './lib/supabase';
 import { Abertura } from './pages/Abertura';
@@ -34,6 +35,8 @@ function Rotas() {
       </Routes>
     );
   return (
+    <>
+    <PapelDeParede />
     <Routes>
       <Route element={<ComMenu />}>
         <Route path="/" element={<Inicio />} />
@@ -52,6 +55,7 @@ function Rotas() {
       <Route path="/nova-senha" element={<NovaSenha />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 

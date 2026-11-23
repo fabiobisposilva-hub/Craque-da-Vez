@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
 import { enviarFotoJogador } from '../lib/imagens';
+import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
 import { categoriaNatural } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
@@ -28,6 +29,8 @@ export function PerfilJogador() {
       const { error } = await supabase.from('jogadores').update(tipo === 'foto' ? { foto_url: caminho } : { capa_url: caminho }).eq('id', jogador.id);
       if (error) throw error;
       await d.recarregar();
+      if (tipo === 'capa') destacarJogador(jogador.id);
+      else atualizarPapelDeParede();
     } catch (e) {
       setErroFoto(mensagemDeErro(e));
     } finally {
@@ -64,6 +67,7 @@ export function PerfilJogador() {
   const maxMes = Math.max(1, ...r.porMes.map((m) => m.gols));
   const temFiltro = Object.values(filtro).some(Boolean);
   const editor = podeEditar(d, jogador.id);
+  if (jogador.capa_url) queueMicrotask(() => { try { if (localStorage.getItem('craque:jogador-em-destaque') !== jogador.id) destacarJogador(jogador.id); } catch { /* ignora */ } });
   // Números separados por time
   const porTime = timesDoJogador
     .map(({ t }) => ({ t, r: resumir(todas.filter((l) => l.jogo.time_id === t.id), jogador.data_nascimento) }))
@@ -71,10 +75,10 @@ export function PerfilJogador() {
 
   return (
     <main className="tela">
-      <div className="capa" style={jogador.capa_link ? { backgroundImage: `url(${jogador.capa_link})` } : undefined}>
+      <div className="capa">
         {editor && (
           <EscolherImagem id="trocar-capa" desativado={!!enviando} onArquivo={(f) => trocarImagem('capa', f)}>
-            {enviando === 'capa' ? 'Enviando…' : '🖼️ Escolher capa'}
+            {enviando === 'capa' ? 'Enviando…' : jogador.capa_url ? '🖼️ Trocar papel de parede' : '🖼️ Papel de parede'}
           </EscolherImagem>
         )}
       </div>

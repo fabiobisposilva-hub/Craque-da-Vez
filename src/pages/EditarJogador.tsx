@@ -82,10 +82,10 @@ export function EditarJogador() {
             <div className="avatar grande">{imgs.foto ? <img src={imgs.foto} alt="" /> : iniciais(f.nome || '?')}</div>
             <div className="pilha cresce">
               <EscolherImagem id="ed-foto" desativado={!!enviando} onArquivo={(a) => trocar('foto', a)}>{enviando === 'foto' ? 'Enviando…' : '📷 Foto do jogador'}</EscolherImagem>
-              <EscolherImagem id="ed-capa" desativado={!!enviando} onArquivo={(a) => trocar('capa', a)}>{enviando === 'capa' ? 'Enviando…' : '🖼️ Fundo do perfil (capa)'}</EscolherImagem>
+              <EscolherImagem id="ed-capa" desativado={!!enviando} onArquivo={(a) => trocar('capa', a)}>{enviando === 'capa' ? 'Enviando…' : '🖼️ Papel de parede do app'}</EscolherImagem>
             </div>
           </div>
-          {imgs.capa && <div style={{ height: 80, borderRadius: 12, backgroundImage: `url(${imgs.capa})`, backgroundSize: 'cover', backgroundPosition: 'center' }} aria-label="Capa atual" />}
+          {imgs.capa && <div style={{ height: 120, borderRadius: 12, backgroundImage: `url(${imgs.capa})`, backgroundSize: 'cover', backgroundPosition: 'center' }} aria-label="Capa atual" />}
           <p className="muted small">A foto aparece redonda no lugar das iniciais. Só a família vê, a menos que você ligue “Mostrar foto no perfil público”.</p>
         </section>
       ) : (
