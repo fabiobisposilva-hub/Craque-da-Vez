@@ -303,6 +303,7 @@ export function TimeDetalhe() {
           ))}
         </section>
       )}
+      {souDono && <ExcluirTime timeId={time.id} nome={time.nome} jogos={d.jogos.filter((g) => g.time_id === time.id).length} campeonatos={camps.length} />}
     </main>
   );
 }
@@ -444,6 +445,57 @@ function ColegasDoTime({ timeId, modalidade, colegas, podeEditar, onMudou }: {
           <button className="btn btn-fantasma">+ Adicionar ao elenco</button>
         </form>
       )}
+    </section>
+  );
+}
+
+function ExcluirTime({ timeId, nome, jogos, campeonatos }: { timeId: string; nome: string; jogos: number; campeonatos: number }) {
+  const nav = useNavigate();
+  const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const temDados = jogos > 0 || campeonatos > 0;
+  const confirmado = !temDados || texto.trim().toUpperCase() === 'EXCLUIR';
+
+  async function excluir() {
+    setExcluindo(true);
+    setErro(null);
+    const { error, count } = await supabase.from('times').delete({ count: 'exact' }).eq('id', timeId);
+    setExcluindo(false);
+    if (error) return setErro(mensagemDeErro(error));
+    if (!count) return setErro('Só quem criou o time pode excluí-lo.');
+    nav('/times', { replace: true });
+  }
+
+  if (!aberto)
+    return (
+      <button className="btn btn-contorno" style={{ marginTop: 8 }} onClick={() => setAberto(true)}>🗑️ Excluir time</button>
+    );
+  return (
+    <section className="cartao pilha" style={{ borderColor: 'var(--accent)' }}>
+      <h3>Excluir “{nome}”?</h3>
+      {temDados ? (
+        <>
+          <p className="small">
+            Isso apaga <b>de vez</b> o time e também{' '}
+            <b>{jogos} jogo{jogos === 1 ? '' : 's'}</b>
+            {campeonatos > 0 && <> e <b>{campeonatos} campeonato{campeonatos === 1 ? '' : 's'}</b></>} dele, com os gols, assistências e cartões desses jogos.
+            Os jogadores continuam no app. Não dá para desfazer.
+          </p>
+          <label className="campo">
+            Para confirmar, digite EXCLUIR
+            <input id="confirma-excluir-time" autoCapitalize="characters" autoComplete="off" value={texto} onChange={(e) => setTexto(e.target.value)} />
+          </label>
+        </>
+      ) : (
+        <p className="small">O time não tem jogos nem campeonatos. Os jogadores do elenco continuam no app.</p>
+      )}
+      <Erro msg={erro} />
+      <div className="grade-2">
+        <button className="btn btn-primario" disabled={!confirmado || excluindo} onClick={excluir}>{excluindo ? 'Excluindo…' : 'Sim, excluir'}</button>
+        <button className="btn btn-fantasma" onClick={() => { setAberto(false); setTexto(''); }}>Cancelar</button>
+      </div>
     </section>
   );
 }
