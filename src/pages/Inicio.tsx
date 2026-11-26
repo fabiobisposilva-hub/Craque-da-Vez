@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, dataCurta, TipoJogo } from '../components/Comuns';
+import { Avatar, dataCurta, Rodape, TipoJogo } from '../components/Comuns';
 import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
 import { Logo } from '../components/Logo';
 import { categoriaNatural } from '../lib/categorias';
@@ -98,6 +98,7 @@ export function Inicio() {
 
       <ProximosJogos d={d} />
       <UltimosJogos d={d} />
+      <Rodape />
     </main>
   );
 }

@@ -117,7 +117,7 @@ export function JogoDetalhe() {
 
       {jogo.resumo && (
         <section className="cartao pilha">
-          <h3>Resumo do jogo</h3>
+          <h3>📝 Resenha do jogo</h3>
           <p style={{ whiteSpace: 'pre-wrap' }}>{jogo.resumo}</p>
         </section>
       )}

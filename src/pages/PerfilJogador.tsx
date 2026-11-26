@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { enviarFotoJogador } from '../lib/imagens';
+import { SalaTrofeus } from '../components/SalaTrofeus';
 import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
 import { categoriaNatural } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { iniciais, POSICOES, SITUACOES } from '../lib/tipos';
+import { iniciais, POSICOES } from '../lib/tipos';
 
 const ROTULO_VIS = { publico: 'Público', aprovados: 'Só aprovados', privado: 'Privado' };
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -60,7 +61,6 @@ export function PerfilJogador() {
   const vinculos = d.vinculos.filter((v) => v.jogador_id === jogador.id);
   const timesDoJogador = vinculos.map((v) => ({ v, t: d.times.find((t) => t.id === v.time_id)! })).filter((x) => x.t);
   const camps = d.campeonatos.filter((c) => todas.some((l) => l.jogo.campeonato_id === c.id));
-  const titulos = camps.filter((c) => c.situacao === 'campeao' || c.situacao === 'vice');
   const categorias = [...new Set(todas.map((l) => l.jogo.categoria))];
   const temporadas = [...new Set(todas.map((l) => l.jogo.data_hora.slice(0, 4)))].sort().reverse();
   const natural = categoriaNatural(jogador.data_nascimento);
@@ -139,6 +139,9 @@ export function PerfilJogador() {
           ))}
         </div>
       )}
+
+      <SalaTrofeus campeonatos={camps} nomeDoTime={(id) => d.times.find((t) => t.id === id)?.nome}
+        vazio={todas.length ? 'Quando um campeonato terminar com título, marque “🏆 Campeão” na página do time e o troféu aparece aqui.' : undefined} />
 
       <div className="numeros">
         <div className="numero"><b>{r.jogos}</b><span>Jogos</span></div>
@@ -237,14 +240,6 @@ export function PerfilJogador() {
             </section>
           )}
 
-          {titulos.length > 0 && (
-            <section className="pilha">
-              <h2>Títulos</h2>
-              <div className="chips">
-                {titulos.map((c) => <span key={c.id} className="etiqueta">{SITUACOES[c.situacao]} · {c.nome} {c.temporada}</span>)}
-              </div>
-            </section>
-          )}
 
           <section className="cartao">
             <h3 style={{ marginBottom: 12 }}>Últimos jogos</h3>

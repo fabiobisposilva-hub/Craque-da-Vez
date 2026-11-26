@@ -450,8 +450,8 @@ export function LancarJogo() {
       )}
 
       <label className="campo">
-        Resumo do jogo (opcional)
-        <textarea id="lj-resumo" rows={4} placeholder="Como foi a partida, como saíram os gols, destaques…" value={resumo} onChange={(e) => setResumo(e.target.value)} />
+        📝 Resenha do jogo (opcional)
+        <textarea id="lj-resumo" rows={4} placeholder="Conte como foi: o clima, os lances, como saíram os gols, os destaques…" value={resumo} onChange={(e) => setResumo(e.target.value)} />
       </label>
 
       {time?.tipo === 'tecnico' && (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Erro, Topo } from '../components/Comuns';
+import { Link, useNavigate } from 'react-router-dom';
+import { Erro, Rodape, Topo } from '../components/Comuns';
 import { useAuth } from '../lib/auth';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 
@@ -10,6 +10,10 @@ export function Conta() {
   const [nome, setNome] = useState('');
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    supabase.rpc('eh_admin').then(({ data }) => setAdmin(data === true));
+  }, []);
 
   useEffect(() => {
     if (!sessao) return;
@@ -32,6 +36,10 @@ export function Conta() {
         <p className="muted small">{sessao?.user.email}</p>
       </section>
 
+      {admin && (
+        <Link to="/admin" className="btn btn-primario">📊 Painel do administrador</Link>
+      )}
+
       <form id="convite" className="cartao pilha" onSubmit={aceitar}>
         <h3>Código de convite</h3>
         <p className="muted small">Recebeu um código de outro responsável? Digite aqui para cuidar do jogador junto com ele.</p>
@@ -45,9 +53,14 @@ export function Conta() {
         <p className="muted small">
           Outros usuários veem só o nome, a categoria e as estatísticas dos seus jogadores. Data de nascimento, local e horário de jogos futuros nunca aparecem. A foto só aparece se você ligar “Mostrar foto no perfil público”.
         </p>
+        <div className="chips">
+          <Link to="/termos" className="link">Termos de Uso</Link>
+          <Link to="/privacidade" className="link">Política de Privacidade</Link>
+        </div>
       </section>
 
       <button className="btn btn-contorno" onClick={() => supabase.auth.signOut()}>Sair</button>
+      <Rodape />
     </main>
   );
 }

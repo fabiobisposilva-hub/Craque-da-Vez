@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Erro } from '../components/Comuns';
+import { Erro, Rodape } from '../components/Comuns';
 import { Logo } from '../components/Logo';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 
@@ -55,6 +55,7 @@ export function Entrar() {
         </Link>
         <p className="aviso">Só maiores de 18 anos criam conta. Atletas menores são cadastrados pelo responsável.</p>
       </form>
+      <Rodape />
     </main>
   );
 }

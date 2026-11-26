@@ -1,5 +1,9 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Menu } from './components/Menu';
+import { supabase } from './lib/supabase';
+import { Admin } from './pages/Admin';
+import { Privacidade, Termos } from './pages/Legal';
 import { PapelDeParede } from './components/PapelDeParede';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configurado } from './lib/supabase';
@@ -24,6 +28,18 @@ function ComMenu() {
   );
 }
 
+/** Avisa o banco que a pessoa está usando o app (para o painel do administrador). */
+function MarcarAcesso() {
+  useEffect(() => {
+    const marcar = () => { if (document.visibilityState === 'visible') supabase.rpc('marcar_acesso').then(() => {}); };
+    marcar();
+    const t = setInterval(marcar, 120000);
+    document.addEventListener('visibilitychange', marcar);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', marcar); };
+  }, []);
+  return null;
+}
+
 function Rotas() {
   const { sessao, carregando } = useAuth();
   if (carregando) return <Abertura />;
@@ -31,11 +47,14 @@ function Rotas() {
     return (
       <Routes>
         <Route path="/criar-conta" element={<CriarConta />} />
+        <Route path="/termos" element={<Termos />} />
+        <Route path="/privacidade" element={<Privacidade />} />
         <Route path="*" element={<Entrar />} />
       </Routes>
     );
   return (
     <>
+    <MarcarAcesso />
     <PapelDeParede />
     <Routes>
       <Route element={<ComMenu />}>
@@ -48,11 +67,14 @@ function Rotas() {
         <Route path="/times/:id" element={<TimeDetalhe />} />
         <Route path="/jogador/:id" element={<PerfilJogador />} />
         <Route path="/conta" element={<Conta />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
       <Route path="/jogador/novo" element={<EditarJogador />} />
       <Route path="/jogador/:id/editar" element={<EditarJogador />} />
       <Route path="/times/novo" element={<NovoTime />} />
       <Route path="/nova-senha" element={<NovaSenha />} />
+      <Route path="/termos" element={<Termos />} />
+      <Route path="/privacidade" element={<Privacidade />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
 import { enviarEscudo } from '../lib/imagens';
 import { salvarEscudoTime } from '../lib/escudos';
+import { SalaTrofeus } from '../components/SalaTrofeus';
 import { categoriaNatural, todasCategorias } from '../lib/categorias';
 import { podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -270,6 +271,8 @@ export function TimeDetalhe() {
         {elenco.length > 0 && <p className="muted small">Posições do {time.modalidade}: {POSICOES[time.modalidade].join(', ')}.</p>}
       </section>
 
+      <SalaTrofeus campeonatos={camps} />
+
       <ColegasDoTime timeId={time.id} modalidade={time.modalidade} colegas={d.colegas.filter((c) => c.time_id === time.id)}
         podeEditar={souDono || elenco.some(({ j }) => podeEditar(d, j!.id))} onMudou={d.recarregar} />
 
@@ -305,6 +308,15 @@ function Campeonatos({ timeId, categorias, camps, podeEditar, onMudou }: { timeI
     if (error) return setErro(mensagemDeErro(error));
     setAberto(false);
     setF({ ...f, nome: '' });
+    onMudou();
+  }
+  const [apagando, setApagando] = useState<string | null>(null);
+  const [erroApagar, setErroApagar] = useState<string | null>(null);
+  async function excluir(c: Campeonato) {
+    setErroApagar(null);
+    const { error } = await supabase.rpc('excluir_campeonato', { p_id: c.id });
+    if (error) return setErroApagar(mensagemDeErro(error));
+    setApagando(null);
     onMudou();
   }
   async function mudar(c: Campeonato, situacao: Campeonato['situacao']) {
@@ -349,11 +361,24 @@ function Campeonatos({ timeId, categorias, camps, podeEditar, onMudou }: { timeI
             <p className="muted small">{c.categoria ?? 'Todas as categorias'}</p>
           </div>
           {podeEditar ? (
-            <select id={`camp-${c.id}`} value={c.situacao} onChange={(e) => mudar(c, e.target.value as Campeonato['situacao'])} aria-label={`Situação do ${c.nome}`} style={{ width: 'auto' }}>
-              {Object.entries(SITUACOES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            <>
+              <select id={`camp-${c.id}`} value={c.situacao} onChange={(e) => mudar(c, e.target.value as Campeonato['situacao'])} aria-label={`Situação do ${c.nome}`} style={{ width: 'auto' }}>
+                {Object.entries(SITUACOES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <button className="voltar" aria-label={`Excluir ${c.nome}`} title="Excluir campeonato" onClick={() => { setApagando(c.id); setErroApagar(null); }}>🗑️</button>
+            </>
           ) : (
             <span className="etiqueta">{SITUACOES[c.situacao]}</span>
+          )}
+          {apagando === c.id && (
+            <div className="pilha" style={{ flexBasis: '100%' }}>
+              <p className="small"><b>Excluir “{c.nome}”?</b> Os jogos dele continuam no app, mas passam a contar como amistosos. Não dá para desfazer.</p>
+              <div className="grade-2">
+                <button className="btn btn-primario btn-pequeno" style={{ width: '100%' }} onClick={() => excluir(c)}>Sim, excluir</button>
+                <button className="btn btn-fantasma btn-pequeno" style={{ width: '100%' }} onClick={() => setApagando(null)}>Cancelar</button>
+              </div>
+              <Erro msg={erroApagar} />
+            </div>
           )}
         </div>
       ))}

@@ -98,3 +98,22 @@ export function TipoJogo({ jogo, campeonato }: {
   if (jogo.tipo === 'treino') return <span className="tipo-jogo tipo-treino">⚽ Treino</span>;
   return <span className="tipo-jogo tipo-amistoso">🤝 Amistoso</span>;
 }
+
+/** Rodapé com créditos e links legais. */
+export function Rodape() {
+  const ano = new Date().getFullYear();
+  return (
+    <footer className="rodape">
+      <p className="rodape-marca">Craque da Vez <span>· Hoje o destaque é você</span></p>
+      <p>Desenvolvido por <b>Miguel</b> e <b>Fábio Bispo</b></p>
+      <p>Criado em 2026 · Brasília, DF</p>
+      <p>© {ano === 2026 ? '2026' : `2026–${ano}`} Craque da Vez. Todos os direitos reservados.</p>
+      <p className="rodape-links">
+        <a href="/termos">Termos de Uso</a>
+        <span aria-hidden="true">·</span>
+        <a href="/privacidade">Política de Privacidade</a>
+      </p>
+      <p className="rodape-versao">Versão 1.0</p>
+    </footer>
+  );
+}
