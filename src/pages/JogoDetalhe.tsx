@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { VerEscalacao } from '../components/Escalacao';
+import { VerPenaltis } from '../components/Penaltis';
 import { ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -80,6 +81,7 @@ export function JogoDetalhe() {
             ) : (
               <>
                 <div className="gols num" style={{ fontSize: 36 }}>{jogo.gols_pro} × {jogo.gols_contra}</div>
+                {jogo.penaltis && jogo.penaltis_pro != null && <span className="penaltis-mini">({jogo.penaltis_pro} × {jogo.penaltis_contra} pên.)</span>}
                 <Resultado r={jogo.resultado} />
               </>
             )}
@@ -112,6 +114,8 @@ export function JogoDetalhe() {
           <a className="btn btn-fantasma btn-pequeno" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jogo.local)}`} target="_blank" rel="noopener noreferrer">Ver no mapa</a>
         </section>
       )}
+
+      <VerPenaltis jogo={jogo} nomeTime={time?.nome ?? 'Nosso time'} />
 
       <VerEscalacao escalacao={jogo.escalacao ?? []} />
 

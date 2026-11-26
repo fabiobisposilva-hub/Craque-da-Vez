@@ -1,14 +1,13 @@
 import { Rodape, Topo } from '../components/Comuns';
 
 /** E-mail de contato para dúvidas e pedidos sobre dados pessoais. Preencha quando tiver um. */
-export const CONTATO_EMAIL = '';
+export const CONTATO_WHATSAPP = '(61) 99219-5242';
+export const CONTATO_WHATSAPP_LINK = 'https://wa.me/5561992195242';
 const ATUALIZADO_EM = '26 de novembro de 2026';
 
 function Contato() {
-  return CONTATO_EMAIL ? (
-    <>pelo e-mail <b style={{ color: 'var(--text)', userSelect: 'all' }}>{CONTATO_EMAIL}</b></>
-  ) : (
-    <>com o responsável pelo Craque da Vez (o e-mail de contato será publicado nesta página em breve)</>
+  return (
+    <>pelo WhatsApp <a href={CONTATO_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"><b style={{ userSelect: 'all' }}>{CONTATO_WHATSAPP}</b></a> (Fábio Bispo)</>
   );
 }
 

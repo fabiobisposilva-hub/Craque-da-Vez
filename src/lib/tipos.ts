@@ -10,6 +10,8 @@ export interface Jogador {
   foto_publica: boolean;
   capa_url: string | null;
   visibilidade: Visibilidade;
+  cidade?: string | null;
+  uf?: string | null;
   /** Links temporários para mostrar as fotos privadas (preenchidos ao carregar). */
   foto_link?: string | null;
   capa_link?: string | null;
@@ -64,7 +66,27 @@ export interface Jogo {
   resumo: string | null;
   lancado_por: string;
   escalacao?: Escalado[] | null;
+  penaltis?: boolean;
+  penaltis_pro?: number | null;
+  penaltis_contra?: number | null;
+  cobrancas?: Cobranca[] | null;
+  goleiro_penaltis?: string | null;
 }
+
+export interface Cobranca {
+  lado: 'nos' | 'eles';
+  nome: string;
+  jogador_id?: string | null;
+  resultado: 'gol' | 'defendido' | 'fora';
+}
+
+/** Quem venceu a disputa de pênaltis: 'nos', 'eles' ou null. */
+export function vencedorPenaltis(j: Pick<Jogo, 'penaltis' | 'penaltis_pro' | 'penaltis_contra' | 'gols_pro' | 'gols_contra'>): 'nos' | 'eles' | null {
+  if (!j.penaltis || j.gols_pro !== j.gols_contra || j.penaltis_pro == null || j.penaltis_contra == null || j.penaltis_pro === j.penaltis_contra) return null;
+  return j.penaltis_pro > j.penaltis_contra ? 'nos' : 'eles';
+}
+
+export const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] as const;
 
 export interface Escalado {
   nome: string;

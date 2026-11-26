@@ -36,7 +36,7 @@ export function SeloAgendado({ data }: { data: string }) {
 
 /** Nosso time × adversário, com os dois escudos e o placar (ou "vs" se o jogo ainda não aconteceu). */
 export function Confronto({ jogo, time, escudoAdversario }: {
-  jogo: Pick<Jogo, 'gols_pro' | 'gols_contra' | 'resultado' | 'adversario' | 'data_hora'>;
+  jogo: Pick<Jogo, 'gols_pro' | 'gols_contra' | 'resultado' | 'adversario' | 'data_hora' | 'penaltis' | 'penaltis_pro' | 'penaltis_contra'>;
   time?: Pick<Time, 'nome' | 'escudo_url' | 'cor'> | null;
   escudoAdversario: string | null;
 }) {
@@ -53,6 +53,9 @@ export function Confronto({ jogo, time, escudoAdversario }: {
         ) : (
           <>
             <b className="num confronto-placar">{jogo.gols_pro} × {jogo.gols_contra}</b>
+            {jogo.penaltis && jogo.penaltis_pro != null && jogo.penaltis_contra != null && (
+              <span className="penaltis-mini">({jogo.penaltis_pro} × {jogo.penaltis_contra} pên.)</span>
+            )}
             <Resultado r={jogo.resultado} />
           </>
         )}

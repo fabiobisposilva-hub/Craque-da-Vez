@@ -4,7 +4,7 @@ import { Erro, EscolherImagem, Topo } from '../components/Comuns';
 import { enviarFotoJogador, linksDasFotos } from '../lib/imagens';
 import { categoriaNatural, categoriasElegiveis, idadeEmAnos } from '../lib/categorias';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { iniciais, type Jogador, type Visibilidade } from '../lib/tipos';
+import { iniciais, UFS, type Jogador, type Visibilidade } from '../lib/tipos';
 
 const VIS: [Visibilidade, string, string][] = [
   ['aprovados', 'Só aprovados', 'Só quem você aprovar vê o perfil'],
@@ -15,7 +15,7 @@ const VIS: [Visibilidade, string, string][] = [
 export function EditarJogador() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
+  const [f, setF] = useState({ nome: '', apelido: '', cidade: '', uf: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [imgs, setImgs] = useState<{ foto: string | null; capa: string | null }>({ foto: null, capa: null });
@@ -48,7 +48,7 @@ export function EditarJogador() {
       if (data) {
         const j = data as Jogador;
         mostrarImagens(j.foto_url, j.capa_url);
-        setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
+        setF({ nome: j.nome, apelido: j.apelido ?? '', cidade: j.cidade ?? '', uf: j.uf ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
       }
     });
   }, [id]);
@@ -59,9 +59,9 @@ export function EditarJogador() {
     e.preventDefault();
     setSalvando(true);
     setErro(null);
-    const { apelido, ...resto } = f;
-    // Só manda o apelido quando preenchido (ou ao apagar um existente), para funcionar mesmo antes do SQL do apelido
-    const linha = { ...resto, nome: f.nome.trim(), perna_dominante: f.perna_dominante || null, ...(apelido.trim() || id ? { apelido: apelido.trim() || null } : {}) };
+    const { apelido, cidade, uf, ...resto } = f;
+    const linha: Record<string, unknown> = { ...resto, nome: f.nome.trim(), perna_dominante: f.perna_dominante || null, cidade: cidade.trim() || null, uf: uf || null };
+    if (apelido.trim() || id) linha.apelido = apelido.trim() || null;
     const r = id
       ? await supabase.from('jogadores').update(linha).eq('id', id).select('id').single()
       : await supabase.from('jogadores').insert(linha).select('id').single();
@@ -100,6 +100,19 @@ export function EditarJogador() {
           Apelido (opcional)
           <input id="jog-apelido" maxLength={30} placeholder="Como chamam ele no time" value={f.apelido} onChange={(e) => setF({ ...f, apelido: e.target.value })} />
         </label>
+        <div className="escalado" style={{ gridTemplateColumns: 'minmax(0, 1fr) 5.5rem' }}>
+          <label className="campo">
+            Cidade
+            <input id="jog-cidade" maxLength={60} placeholder="Ex.: Brasília" value={f.cidade} onChange={(e) => setF({ ...f, cidade: e.target.value })} />
+          </label>
+          <label className="campo">
+            Estado
+            <select id="jog-uf" value={f.uf} onChange={(e) => setF({ ...f, uf: e.target.value })}>
+              <option value="">UF</option>
+              {UFS.map((u) => <option key={u}>{u}</option>)}
+            </select>
+          </label>
+        </div>
         <label className="campo">
           Data de nascimento
           <input id="jog-nasc" type="date" required max={new Date().toISOString().slice(0, 10)} value={f.data_nascimento}

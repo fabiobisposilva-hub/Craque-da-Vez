@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { EditorEscalacao } from '../components/Escalacao';
+import { EditorPenaltis, penaltisVazio, type DadosPenaltis } from '../components/Penaltis';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -36,6 +37,7 @@ export function LancarJogo() {
   const d = useDados();
   const [resumo, setResumo] = useState('');
   const [escalacao, setEscalacao] = useState<Escalado[]>([]);
+  const [pen, setPen] = useState<DadosPenaltis>(penaltisVazio());
   const [carregouEdicao, setCarregouEdicao] = useState(false);
   const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
@@ -61,6 +63,7 @@ export function LancarJogo() {
   const [salvando, setSalvando] = useState(false);
 
   const time = d.times.find((t) => t.id === timeId);
+  const ehFuturoLocal = new Date(dataHora).getTime() > Date.now();
   const temporada = Number(dataHora.slice(0, 4)) || new Date().getFullYear();
 
   // Começa no primeiro time disponível
@@ -94,6 +97,7 @@ export function LancarJogo() {
     setGolsContra(g.gols_contra);
     setResumo(g.resumo ?? '');
     setEscalacao(g.escalacao ?? []);
+    setPen({ penaltis: !!g.penaltis, penaltis_pro: g.penaltis_pro ?? null, penaltis_contra: g.penaltis_contra ?? null, cobrancas: g.cobrancas ?? [], goleiro_penaltis: g.goleiro_penaltis ?? '' });
     const novo: Record<string, Part> = {};
     const doJogo = d.participacoes.filter((x) => x.jogo_id === g.id);
     for (const v of d.vinculos.filter((v) => v.time_id === g.time_id)) {
@@ -206,6 +210,18 @@ export function LancarJogo() {
 
   // Escalação: grava no jogo e guarda os nomes novos no elenco do time
   async function salvarEscalacao(id: string) {
+    // Pênaltis só valem com empate no tempo normal
+    const temPen = pen.penaltis && golsPro === golsContra;
+    if (temPen || jogoId) {
+      const { error } = await supabase.from('jogos').update({
+        penaltis: temPen,
+        penaltis_pro: temPen ? pen.penaltis_pro : null,
+        penaltis_contra: temPen ? pen.penaltis_contra : null,
+        cobrancas: temPen ? pen.cobrancas.map((c) => ({ ...c, nome: c.nome.trim() })) : [],
+        goleiro_penaltis: temPen ? pen.goleiro_penaltis.trim() || null : null,
+      }).eq('id', id);
+      if (error && temPen) throw /penaltis|cobrancas/.test(error.message) ? new Error('O jogo foi salvo, mas os pênaltis precisam do SQL novo no Supabase.') : error;
+    }
     const lista = escalacao.filter((e) => e.nome.trim()).map((e) => ({ ...e, nome: e.nome.trim() }));
     if (!lista.length && !jogoId) return;
     const { error } = await supabase.from('jogos').update({ escalacao: lista }).eq('id', id);
@@ -443,6 +459,15 @@ export function LancarJogo() {
           </section>
         );
       })}
+
+      {time && golsPro === golsContra && !ehFuturoLocal && (
+        <EditorPenaltis valor={pen} onChange={setPen} nomeTime={time.nome} adversario={adversario.trim()}
+          batedores={[
+            ...elegiveis.map((j) => ({ nome: chamarDe(j), jogador_id: j.id })),
+            ...escalacao.filter((e) => e.nome.trim()).map((e) => ({ nome: e.nome.trim() })),
+          ].filter((b, i, a) => a.findIndex((x) => x.nome.toLowerCase() === b.nome.toLowerCase()) === i)}
+          goleiroSugerido={escalacao.find((e) => e.titular && e.posicao === 'Goleiro' && e.nome.trim())?.nome.trim()} />
+      )}
 
       {time && (
         <EditorEscalacao modalidade={time.modalidade} valor={escalacao} onChange={setEscalacao}

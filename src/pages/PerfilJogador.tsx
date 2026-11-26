@@ -105,6 +105,7 @@ export function PerfilJogador() {
         <p className="muted">
           {natural} · {jogador.data_nascimento.slice(0, 4)}
           {jogador.perna_dominante && ` · perna ${jogador.perna_dominante}`}
+          {(jogador.cidade || jogador.uf) && <><br />📍 {[jogador.cidade, jogador.uf].filter(Boolean).join(' - ')}</>}
         </p>
         </div>
         {editor && (
@@ -206,6 +207,13 @@ export function PerfilJogador() {
               </p>
             )}
           </section>
+
+          {(() => {
+            const minhas = linhas.flatMap(({ jogo }) => (jogo.cobrancas ?? []).filter((c) => c.lado === 'nos' && c.jogador_id === jogador.id));
+            if (!minhas.length) return null;
+            const gols = minhas.filter((c) => c.resultado === 'gol').length;
+            return <p className="cartao small">🥅 Pênaltis em disputas: <b>{gols} de {minhas.length}</b> convertidos</p>;
+          })()}
 
           {porTime.length > 1 && !filtro.time && (
             <section className="cartao" style={{ overflowX: 'auto' }}>
