@@ -365,7 +365,7 @@ function Campeonatos({ timeId, categorias, camps, podeEditar, onMudou }: { timeI
               <select id={`camp-${c.id}`} value={c.situacao} onChange={(e) => mudar(c, e.target.value as Campeonato['situacao'])} aria-label={`Situação do ${c.nome}`} style={{ width: 'auto' }}>
                 {Object.entries(SITUACOES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
-              <button className="voltar" aria-label={`Excluir ${c.nome}`} title="Excluir campeonato" onClick={() => { setApagando(c.id); setErroApagar(null); }}>🗑️</button>
+              <button className="btn btn-fantasma btn-pequeno" aria-label={`Excluir ${c.nome}`} onClick={() => { setApagando(c.id); setErroApagar(null); }}>🗑️ Excluir</button>
             </>
           ) : (
             <span className="etiqueta">{SITUACOES[c.situacao]}</span>

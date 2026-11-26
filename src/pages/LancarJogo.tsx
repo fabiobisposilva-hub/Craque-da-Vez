@@ -38,6 +38,7 @@ export function LancarJogo() {
   const [resumo, setResumo] = useState('');
   const [escalacao, setEscalacao] = useState<Escalado[]>([]);
   const [pen, setPen] = useState<DadosPenaltis>(penaltisVazio());
+  const [apagandoCamp, setApagandoCamp] = useState(false);
   const [carregouEdicao, setCarregouEdicao] = useState(false);
   const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
@@ -63,7 +64,6 @@ export function LancarJogo() {
   const [salvando, setSalvando] = useState(false);
 
   const time = d.times.find((t) => t.id === timeId);
-  const ehFuturoLocal = new Date(dataHora).getTime() > Date.now();
   const temporada = Number(dataHora.slice(0, 4)) || new Date().getFullYear();
 
   // Começa no primeiro time disponível
@@ -365,6 +365,23 @@ export function LancarJogo() {
                 {campsDoTime.map((c) => <option key={c.id} value={c.id}>{c.nome} {c.temporada}</option>)}
               </select>
               <button type="button" className="btn btn-fantasma" onClick={() => { setNovoCamp(''); setCampId(''); }}>+ Novo campeonato</button>
+              {campId && (
+                apagandoCamp ? (
+                  <div className="aviso pilha">
+                    <span><b style={{ color: 'var(--text)' }}>Excluir “{campsDoTime.find((c) => c.id === campId)?.nome}”?</b> Os jogos dele continuam no app como amistosos. Não dá para desfazer.</span>
+                    <div className="grade-2">
+                      <button type="button" className="btn btn-primario btn-pequeno" style={{ width: '100%' }} onClick={async () => {
+                        const { error } = await supabase.rpc('excluir_campeonato', { p_id: campId });
+                        if (error) return setErro(mensagemDeErro(error));
+                        setApagandoCamp(false); setCampId(''); await d.recarregar();
+                      }}>Sim, excluir</button>
+                      <button type="button" className="btn btn-fantasma btn-pequeno" style={{ width: '100%' }} onClick={() => setApagandoCamp(false)}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => setApagandoCamp(true)}>🗑️ Excluir este campeonato</button>
+                )
+              )}
             </>
           ) : (
             <>
@@ -425,6 +442,18 @@ export function LancarJogo() {
         <div><p className="muted small">{adversario || 'Adversário'}</p><Contador valor={golsContra} onChange={setGolsContra} rotulo="gols do adversário" /></div>
       </section>
 
+      {time && golsPro !== golsContra && tipo === 'campeonato' && (
+        <p className="muted small" style={{ textAlign: 'center' }}>🥅 Foi para os pênaltis? Coloque o placar do <b>tempo normal</b> (empatado) e o quadro da disputa aparece aqui.</p>
+      )}
+      {time && golsPro === golsContra && (
+        <EditorPenaltis valor={pen} onChange={setPen} nomeTime={time.nome} adversario={adversario.trim()}
+          batedores={[
+            ...elegiveis.map((j) => ({ nome: chamarDe(j), jogador_id: j.id })),
+            ...escalacao.filter((e) => e.nome.trim()).map((e) => ({ nome: e.nome.trim() })),
+          ].filter((b, i, a) => a.findIndex((x) => x.nome.toLowerCase() === b.nome.toLowerCase()) === i)}
+          goleiroSugerido={escalacao.find((e) => e.titular && e.posicao === 'Goleiro' && e.nome.trim())?.nome.trim()} />
+      )}
+
       <h2>Jogadores</h2>
       {elegiveis.length === 0 && <p className="muted small">Nenhum jogador seu neste time pode jogar no {categoria}.</p>}
       {elenco.filter((j) => !elegiveis.includes(j)).map((j) => (
@@ -460,14 +489,6 @@ export function LancarJogo() {
         );
       })}
 
-      {time && golsPro === golsContra && !ehFuturoLocal && (
-        <EditorPenaltis valor={pen} onChange={setPen} nomeTime={time.nome} adversario={adversario.trim()}
-          batedores={[
-            ...elegiveis.map((j) => ({ nome: chamarDe(j), jogador_id: j.id })),
-            ...escalacao.filter((e) => e.nome.trim()).map((e) => ({ nome: e.nome.trim() })),
-          ].filter((b, i, a) => a.findIndex((x) => x.nome.toLowerCase() === b.nome.toLowerCase()) === i)}
-          goleiroSugerido={escalacao.find((e) => e.titular && e.posicao === 'Goleiro' && e.nome.trim())?.nome.trim()} />
-      )}
 
       {time && (
         <EditorEscalacao modalidade={time.modalidade} valor={escalacao} onChange={setEscalacao}
