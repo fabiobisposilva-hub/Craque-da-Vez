@@ -6,6 +6,7 @@ import { Logo } from '../components/Logo';
 import { categoriaNatural } from '../lib/categorias';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
+import { golsDoJogador } from '../lib/estatisticas';
 import { supabase } from '../lib/supabase';
 import { chamarDe, type Notificacao } from '../lib/tipos';
 
@@ -108,11 +109,12 @@ function CartaoDoJogo({ d, g }: { d: ReturnType<typeof useDados>; g: ReturnType<
   const camp = d.campeonatos.find((c) => c.id === g.campeonato_id);
   const futuro = ehFuturo(g);
   const destaques = futuro ? [] : d.participacoes
-    .filter((p) => p.jogo_id === g.id && (p.gols || p.assistencias || p.craque_do_jogo))
+    .filter((p) => p.jogo_id === g.id && (golsDoJogador(g, p) || p.assistencias || p.craque_do_jogo))
     .map((p) => {
       const j = d.jogadores.find((x) => x.id === p.jogador_id);
       if (!j) return null;
-      const itens = [p.gols ? `${p.gols} gol${p.gols > 1 ? 's' : ''}` : '', p.assistencias ? `${p.assistencias} assist.` : ''].filter(Boolean).join(', ');
+      const gp = golsDoJogador(g, p);
+      const itens = [gp ? `${gp} gol${gp > 1 ? 's' : ''}${gp > p.gols ? ` (${gp - p.gols} pên.)` : ''}` : '', p.assistencias ? `${p.assistencias} assist.` : ''].filter(Boolean).join(', ');
       return `${p.craque_do_jogo ? '★ ' : ''}${chamarDe(j)}${itens ? `: ${itens}` : ''}`;
     })
     .filter((x): x is string => !!x);

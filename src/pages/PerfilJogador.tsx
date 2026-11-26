@@ -7,6 +7,7 @@ import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDePa
 import { categoriaNatural, categoriasDaCarreira } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
+import { golsDoJogador } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { iniciais, POSICOES } from '../lib/tipos';
 
@@ -146,7 +147,7 @@ export function PerfilJogador() {
 
       <div className="numeros">
         <div className="numero"><b>{r.jogos}</b><span>Jogos</span></div>
-        <div className="numero"><b>{r.gols}</b><span>Gols</span></div>
+        <div className="numero"><b>{r.gols}</b><span>Gols</span>{r.golsPenaltis > 0 && <small className="numero-extra">{r.golsPenaltis} nos pênaltis</small>}</div>
         <div className="numero"><b>{r.assistencias}</b><span>Assist.</span></div>
         <div className="numero"><b>{r.cartoes}</b><span>Cartões</span></div>
       </div>
@@ -265,7 +266,7 @@ export function PerfilJogador() {
                 </div>
                 <div className="small" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {part.craque_do_jogo && <span className="estrela" title="Craque do jogo">★ </span>}
-                  {part.gols > 0 && <span>⚽{part.gols} </span>}
+                  {golsDoJogador(jogo, part) > 0 && <span>⚽{golsDoJogador(jogo, part)} </span>}
                   {part.assistencias > 0 && <span>🅰{part.assistencias} </span>}
                   {part.amarelos > 0 && <i className="cartao-ico am" title="Amarelo" />}
                   {part.vermelho && <> <i className="cartao-ico vm" title="Vermelho" /></>}

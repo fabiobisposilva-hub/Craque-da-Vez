@@ -6,6 +6,7 @@ import { salvarEscudoTime } from '../lib/escudos';
 import { SalaTrofeus } from '../components/SalaTrofeus';
 import { categoriaNatural, categoriasDaCarreira, todasCategorias } from '../lib/categorias';
 import { podeEditar, useDados } from '../lib/dados';
+import { golsDoJogador } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
 
@@ -195,7 +196,7 @@ export function TimeDetalhe() {
       const j = d.jogadores.find((x) => x.id === p.jogador_id);
       if (!j) continue;
       const r = ranking.get(j.id) ?? { nome: j.nome, gols: 0, assist: 0, cartoes: 0, jogos: 0 };
-      r.gols += p.gols; r.assist += p.assistencias; r.cartoes += p.amarelos + (p.vermelho ? 1 : 0); r.jogos++;
+      r.gols += golsDoJogador(g, p); r.assist += p.assistencias; r.cartoes += p.amarelos + (p.vermelho ? 1 : 0); r.jogos++;
       ranking.set(j.id, r);
     }
   }

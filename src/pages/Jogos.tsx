@@ -4,6 +4,7 @@ import { dataCurta, TipoJogo, Topo } from '../components/Comuns';
 import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { chamarDe } from '../lib/tipos';
+import { golsDoJogador } from '../lib/estatisticas';
 
 export function Jogos() {
   const d = useDados();
@@ -43,7 +44,7 @@ export function Jogos() {
                   return (
                     <span key={p.jogador_id} className="etiqueta">
                       {p.craque_do_jogo && <span className="estrela">★</span>}
-                      {nome} · {p.gols} gol{p.gols === 1 ? '' : 's'}{p.assistencias ? ` · ${p.assistencias} assist.` : ''}
+                      {nome} · {golsDoJogador(j, p)} gol{golsDoJogador(j, p) === 1 ? '' : 's'}{golsDoJogador(j, p) > p.gols ? ' (c/ pên.)' : ''}{p.assistencias ? ` · ${p.assistencias} assist.` : ''}
                       {p.amarelos > 0 && <i className="cartao-ico am" title="Amarelo" />}
                       {p.vermelho && <i className="cartao-ico vm" title="Vermelho" />}
                     </span>

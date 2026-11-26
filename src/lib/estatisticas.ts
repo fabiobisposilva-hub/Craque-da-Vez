@@ -18,6 +18,8 @@ export interface Resumo {
   aproveitamento: number;
   maiorSequencia: number;
   craque: number;
+  /** Gols convertidos em disputas de pênaltis (já somados em gols). */
+  golsPenaltis: number;
   acima: { gols: number; jogos: number; categorias: string[] };
   porMes: { mes: string; gols: number }[];
 }
@@ -32,28 +34,42 @@ export function linhasDoJogador(jogos: Jogo[], parts: Participacao[], jogadorId:
     .sort((a, b) => a.jogo.data_hora.localeCompare(b.jogo.data_hora));
 }
 
+/** Gols que o jogador converteu na disputa de pênaltis deste jogo. */
+export function golsNaDisputa(jogo: Pick<Jogo, 'cobrancas' | 'penaltis'>, jogadorId: string): number {
+  if (!jogo.penaltis) return 0;
+  return (jogo.cobrancas ?? []).filter((c) => c.lado === 'nos' && c.jogador_id === jogadorId && c.resultado === 'gol').length;
+}
+
+/** Gols do jogador no jogo, contando os da disputa de pênaltis. */
+export function golsDoJogador(jogo: Pick<Jogo, 'cobrancas' | 'penaltis'>, part: Pick<Participacao, 'gols' | 'jogador_id'>): number {
+  return part.gols + golsNaDisputa(jogo, part.jogador_id);
+}
+
 export function resumir(linhas: Linha[], nascimento: string): Resumo {
-  let gols = 0, assistencias = 0, cartoes = 0, v = 0, e = 0, d = 0, seq = 0, maiorSequencia = 0, craque = 0;
+  let gols = 0, golsPenaltis = 0, assistencias = 0, cartoes = 0, v = 0, e = 0, d = 0, seq = 0, maiorSequencia = 0, craque = 0;
   const acima = { gols: 0, jogos: 0, categorias: new Set<string>() };
   const meses = new Map<string, number>();
   for (const { jogo, part } of linhas) {
-    gols += part.gols;
+    const pen = golsNaDisputa(jogo, part.jogador_id);
+    const golsJogo = part.gols + pen;
+    gols += golsJogo;
+    golsPenaltis += pen;
     assistencias += part.assistencias;
     cartoes += part.amarelos + (part.vermelho ? 1 : 0);
     if (part.craque_do_jogo) craque++;
     if (jogo.resultado === 'V') v++;
     else if (jogo.resultado === 'E') e++;
     else d++;
-    seq = part.gols > 0 ? seq + 1 : 0;
+    seq = golsJogo > 0 ? seq + 1 : 0;
     maiorSequencia = Math.max(maiorSequencia, seq);
     const temporada = Number(jogo.data_hora.slice(0, 4));
     if (jogouAcima(nascimento, jogo.categoria, temporada)) {
       acima.jogos++;
-      acima.gols += part.gols;
+      acima.gols += golsJogo;
       acima.categorias.add(jogo.categoria);
     }
     const mes = jogo.data_hora.slice(0, 7);
-    meses.set(mes, (meses.get(mes) ?? 0) + part.gols);
+    meses.set(mes, (meses.get(mes) ?? 0) + golsJogo);
   }
   const n = linhas.length;
   return {
@@ -68,6 +84,7 @@ export function resumir(linhas: Linha[], nascimento: string): Resumo {
     aproveitamento: n ? Math.round(((v * 3 + e) / (n * 3)) * 100) : 0,
     maiorSequencia,
     craque,
+    golsPenaltis,
     acima: { ...acima, categorias: [...acima.categorias].sort() },
     porMes: [...meses].map(([mes, g]) => ({ mes, gols: g })),
   };

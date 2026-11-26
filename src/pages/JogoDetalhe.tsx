@@ -4,6 +4,7 @@ import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from 
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { VerEscalacao } from '../components/Escalacao';
 import { VerPenaltis } from '../components/Penaltis';
+import { golsNaDisputa } from '../lib/estatisticas';
 import { ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -138,7 +139,7 @@ export function JogoDetalhe() {
                 <div className="cresce" style={{ minWidth: 0 }}>
                   <b>{chamarDe(j)}</b> {p.craque_do_jogo && <span className="estrela">★ craque do jogo</span>}
                   <p className="muted small">
-                    {p.gols} gol{p.gols === 1 ? '' : 's'} · {p.assistencias} assist. · {p.titular ? 'titular' : 'reserva'}
+                    {p.gols} gol{p.gols === 1 ? '' : 's'}{golsNaDisputa(jogo, p.jogador_id) > 0 && ` + ${golsNaDisputa(jogo, p.jogador_id)} na disputa de pênaltis`} · {p.assistencias} assist. · {p.titular ? 'titular' : 'reserva'}
                     {p.amarelos > 0 && <> · <i className="cartao-ico am" /> {p.amarelos}</>}
                     {p.vermelho && <> · <i className="cartao-ico vm" /> vermelho{p.suspenso_proximo ? ' (suspenso no próximo)' : ''}</>}
                   </p>

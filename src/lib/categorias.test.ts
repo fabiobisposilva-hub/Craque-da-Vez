@@ -81,3 +81,15 @@ describe('carreira', () => {
     expect(podeJogar('2016-11-01', 'Sub-8', 2025)).toBe(false);
   });
 });
+
+import { resumir } from './estatisticas';
+describe('gols de pênalti na disputa', () => {
+  it('somam aos gols do jogador', () => {
+    const jogo = { id: 'g', data_hora: '2025-09-28T12:00:00Z', categoria: 'Sub-9', resultado: 'E', gols_pro: 3, gols_contra: 3, penaltis: true,
+      cobrancas: [{ lado: 'nos', nome: 'Bispo', jogador_id: 'm', resultado: 'gol' }, { lado: 'nos', nome: '', resultado: 'fora' }] } as never;
+    const part = { jogo_id: 'g', jogador_id: 'm', gols: 3, assistencias: 0, amarelos: 0, vermelho: false, craque_do_jogo: false } as never;
+    const r = resumir([{ jogo, part }], '2016-11-01');
+    expect(r.gols).toBe(4);
+    expect(r.golsPenaltis).toBe(1);
+  });
+});
