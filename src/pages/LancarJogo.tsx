@@ -133,6 +133,23 @@ export function LancarJogo() {
     const natural = categoriaNatural(j.data_nascimento, temporada);
     return categorias.includes(natural) ? natural : categorias[0];
   };
+  // Time em que ele jogou numa categoria de anos anteriores (ex.: Penarol no Sub-9):
+  // ao escolher o time num jogo novo, a temporada vai para o ano em que ele tinha essa categoria.
+  const timeAnterior = useRef('');
+  useEffect(() => {
+    if (jogoId || !timeId || timeAnterior.current === timeId) return;
+    timeAnterior.current = timeId;
+    const j = elenco[0];
+    const cat = j && d.vinculos.find((v) => v.jogador_id === j.id && v.time_id === timeId)?.categoria;
+    if (!j || !cat || !/^Sub-\d+$/.test(cat)) return;
+    if (podeJogar(j.data_nascimento, cat, temporada)) return;
+    const ano = Number(j.data_nascimento.slice(0, 4)) + Number(cat.slice(4));
+    if (ano > new Date().getFullYear()) return;
+    setDataHora(`${ano}${dataHora.slice(4)}`);
+    setAvisoAno(`No ${d.times.find((t) => t.id === timeId)?.nome}, ${chamarDe(j)} jogou no ${cat}, então a temporada foi para ${ano}. Confira o dia e o horário.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeId, elenco, jogoId]);
+
   const chaveCategoria = useRef('');
   useEffect(() => {
     if (!categorias.length || (jogoId && !carregouEdicao)) return;
