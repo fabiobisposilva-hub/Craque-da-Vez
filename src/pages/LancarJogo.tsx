@@ -4,7 +4,7 @@ import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comu
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { EditorEscalacao } from '../components/Escalacao';
 import { EditorPenaltis, penaltisVazio, type DadosPenaltis } from '../components/Penaltis';
-import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, todasCategorias } from '../lib/categorias';
+import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, temporadasDaCarreira, todasCategorias } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { chamarDe, FASES, type Escalado, type Jogador } from '../lib/tipos';
@@ -343,7 +343,10 @@ export function LancarJogo() {
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="selo" style={{ marginBottom: 8 }}>Temporada do jogo</legend>
         <div className="chips">
-          {[0, 1, 2, 3].map((n) => new Date().getFullYear() - n).map((ano) => (
+          {(elenco.length
+            ? [...new Set(elenco.flatMap((j) => temporadasDaCarreira(j.data_nascimento)))].sort((a, b) => b - a)
+            : [0, 1, 2, 3].map((n) => new Date().getFullYear() - n)
+          ).map((ano) => (
             <button key={ano} type="button" className="chip" aria-pressed={temporada === ano}
               onClick={() => { if (ano !== temporada) { setDataHora(`${ano}${dataHora.slice(4)}`); setAvisoAno(null); } }}>{ano}</button>
           ))}

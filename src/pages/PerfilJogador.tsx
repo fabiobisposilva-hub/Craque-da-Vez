@@ -4,7 +4,7 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, T
 import { enviarFotoJogador } from '../lib/imagens';
 import { SalaTrofeus } from '../components/SalaTrofeus';
 import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
-import { categoriaNatural, categoriasElegiveis } from '../lib/categorias';
+import { categoriaNatural, categoriasDaCarreira } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -360,8 +360,8 @@ function ColocarEmTime({ jogadorId, nascimento, jaEsta, times, onMudou }: { joga
           )}
           {time && nascimento && (
             <select id="ct-cat" value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })} aria-label="Categoria neste time">
-              <option value="">Categoria: automática ({categoriaNatural(nascimento)})</option>
-              {categoriasElegiveis(nascimento).map((c) => <option key={c} value={c}>Categoria: {c}</option>)}
+              <option value="">Categoria: automática (pelo ano do jogo)</option>
+              {categoriasDaCarreira(nascimento).map((c) => <option key={c} value={c}>Categoria: {c}</option>)}
             </select>
           )}
           <Erro msg={erro} />

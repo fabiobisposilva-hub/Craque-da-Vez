@@ -63,3 +63,21 @@ describe('outros', () => {
     expect(resultado(0, 2)).toBe('D');
   });
 });
+
+import { categoriasDaCarreira, temporadasDaCarreira } from './categorias';
+describe('carreira', () => {
+  it('Miguel (2016) tem temporadas de 2021 (Sub-5) até 2026', () => {
+    expect(temporadasDaCarreira('2016-11-01', 2026)).toEqual([2026, 2025, 2024, 2023, 2022, 2021]);
+  });
+  it('categorias da carreira vão do Sub-5 em diante', () => {
+    const c = categoriasDaCarreira('2016-11-01', 2026);
+    expect(c[0]).toBe('Sub-5');
+    expect(c).toContain('Sub-9');
+    expect(c).toContain('Sub-10');
+  });
+  it('em 2025 o Miguel pode Sub-9 e não pode Sub-8', async () => {
+    const { podeJogar } = await import('./categorias');
+    expect(podeJogar('2016-11-01', 'Sub-9', 2025)).toBe(true);
+    expect(podeJogar('2016-11-01', 'Sub-8', 2025)).toBe(false);
+  });
+});

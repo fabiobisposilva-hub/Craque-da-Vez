@@ -4,7 +4,7 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from
 import { enviarEscudo } from '../lib/imagens';
 import { salvarEscudoTime } from '../lib/escudos';
 import { SalaTrofeus } from '../components/SalaTrofeus';
-import { categoriaNatural, categoriasElegiveis, todasCategorias } from '../lib/categorias';
+import { categoriaNatural, categoriasDaCarreira, todasCategorias } from '../lib/categorias';
 import { podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
@@ -273,8 +273,8 @@ export function TimeDetalhe() {
                   await supabase.from('jogador_times').update({ categoria: e.target.value || null }).match({ jogador_id: j!.id, time_id: time.id });
                   d.recarregar();
                 }}>
-                  <option value="">Automática ({categoriaNatural(j!.data_nascimento)})</option>
-                  {categoriasElegiveis(j!.data_nascimento).map((c) => <option key={c}>{c}</option>)}
+                  <option value="">Automática (pelo ano do jogo)</option>
+                  {categoriasDaCarreira(j!.data_nascimento).map((c) => <option key={c}>{c}</option>)}
                 </select>
               </label>
             )}

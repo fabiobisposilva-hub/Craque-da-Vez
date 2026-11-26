@@ -96,3 +96,18 @@ export function idadeEmAnos(dataNascimento: string, hoje = new Date()): number {
 export function resultado(golsPro: number, golsContra: number): 'V' | 'E' | 'D' {
   return golsPro > golsContra ? 'V' : golsPro < golsContra ? 'D' : 'E';
 }
+
+/** Temporadas em que o jogador já pôde jogar, da atual para trás (a partir do ano em que tinha MENOR_SUB anos; no máximo 15). */
+export function temporadasDaCarreira(dataNascimento: string, atual = temporadaAtual()): number[] {
+  const primeira = Math.max(anoDe(dataNascimento) + MENOR_SUB, atual - 15);
+  const anos: number[] = [];
+  for (let a = atual; a >= Math.min(primeira, atual); a--) anos.push(a);
+  return anos;
+}
+
+/** Todas as categorias que o jogador pôde jogar em alguma temporada da carreira (ex.: Sub-5 até as de hoje). */
+export function categoriasDaCarreira(dataNascimento: string, atual = temporadaAtual()): Categoria[] {
+  const set = new Set<string>();
+  for (const ano of temporadasDaCarreira(dataNascimento, atual)) for (const c of categoriasElegiveis(dataNascimento, ano)) set.add(c);
+  return todasCategorias().filter((c) => set.has(c));
+}
