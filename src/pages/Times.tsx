@@ -4,7 +4,7 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from
 import { enviarEscudo } from '../lib/imagens';
 import { salvarEscudoTime } from '../lib/escudos';
 import { SalaTrofeus } from '../components/SalaTrofeus';
-import { categoriaNatural, todasCategorias } from '../lib/categorias';
+import { categoriaNatural, categoriasElegiveis, todasCategorias } from '../lib/categorias';
 import { podeEditar, useDados } from '../lib/dados';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
@@ -258,15 +258,27 @@ export function TimeDetalhe() {
         <div className="secao-titulo"><h2>Elenco</h2></div>
         {elenco.length === 0 && <p className="muted small">Ninguém no elenco ainda. Abra o perfil de um jogador e toque em “Colocar num time”.</p>}
         {elenco.map(({ v, j }) => (
-          <Link key={j!.id} to={`/jogador/${j!.id}`} className="cartao clicavel">
-            <div className="linha">
+          <div key={j!.id} className="cartao pilha" style={{ gap: 10 }}>
+            <Link to={`/jogador/${j!.id}`} className="linha" style={{ color: 'inherit', textDecoration: 'none' }}>
               <Avatar jogador={j!} numero={v.numero_camisa} />
               <div className="cresce">
                 <h3>{j!.nome}</h3>
-                <p className="muted small">{[v.posicao, v.numero_camisa != null && `camisa ${v.numero_camisa}`].filter(Boolean).join(' · ') || 'Posição não informada'}</p>
+                <p className="muted small">{[v.categoria, v.posicao, v.numero_camisa != null && `camisa ${v.numero_camisa}`].filter(Boolean).join(' · ') || 'Posição não informada'}</p>
               </div>
-            </div>
-          </Link>
+            </Link>
+            {podeEditar(d, j!.id) && (
+              <label className="linha small" style={{ gap: 8 }}>
+                <span className="muted cresce">Categoria neste time</span>
+                <select id={`cat-${j!.id}`} style={{ width: 'auto' }} value={v.categoria ?? ''} onChange={async (e) => {
+                  await supabase.from('jogador_times').update({ categoria: e.target.value || null }).match({ jogador_id: j!.id, time_id: time.id });
+                  d.recarregar();
+                }}>
+                  <option value="">Automática ({categoriaNatural(j!.data_nascimento)})</option>
+                  {categoriasElegiveis(j!.data_nascimento).map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
         ))}
         {elenco.length > 0 && <p className="muted small">Posições do {time.modalidade}: {POSICOES[time.modalidade].join(', ')}.</p>}
       </section>

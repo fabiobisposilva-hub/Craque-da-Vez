@@ -4,7 +4,7 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, T
 import { enviarFotoJogador } from '../lib/imagens';
 import { SalaTrofeus } from '../components/SalaTrofeus';
 import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
-import { categoriaNatural } from '../lib/categorias';
+import { categoriaNatural, categoriasElegiveis } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
@@ -276,7 +276,7 @@ export function PerfilJogador() {
         </>
       )}
 
-      {editor && <ColocarEmTime jogadorId={jogador.id} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
+      {editor && <ColocarEmTime jogadorId={jogador.id} nascimento={jogador.data_nascimento} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
       {editor && <Responsaveis jogadorId={jogador.id} nome={jogador.apelido || jogador.nome.split(' ')[0]} />}
     </main>
   );
@@ -308,10 +308,10 @@ function Convites({ jogadorId, vinculos, onMudou }: { jogadorId: string; vinculo
   );
 }
 
-function ColocarEmTime({ jogadorId, jaEsta, times, onMudou }: { jogadorId: string; jaEsta: string[]; times: { id: string; nome: string; modalidade: keyof typeof POSICOES; dono_id: string }[]; onMudou: () => void }) {
+function ColocarEmTime({ jogadorId, nascimento, jaEsta, times, onMudou }: { jogadorId: string; nascimento?: string; jaEsta: string[]; times: { id: string; nome: string; modalidade: keyof typeof POSICOES; dono_id: string }[]; onMudou: () => void }) {
   const [meuId, setMeuId] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
-  const [f, setF] = useState({ time: '', posicao: '', numero: '' });
+  const [f, setF] = useState({ time: '', posicao: '', numero: '', categoria: '' });
   const [erro, setErro] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeuId(data.user?.id ?? null));
@@ -322,11 +322,11 @@ function ColocarEmTime({ jogadorId, jaEsta, times, onMudou }: { jogadorId: strin
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     const { error } = await supabase.from('jogador_times').insert({
-      jogador_id: jogadorId, time_id: f.time, posicao: f.posicao || null, numero_camisa: f.numero === '' ? null : Number(f.numero),
+      jogador_id: jogadorId, time_id: f.time, posicao: f.posicao || null, numero_camisa: f.numero === '' ? null : Number(f.numero), categoria: f.categoria || null,
     });
     if (error) return setErro(mensagemDeErro(error));
     setAberto(false);
-    setF({ time: '', posicao: '', numero: '' });
+    setF({ time: '', posicao: '', numero: '', categoria: '' });
     onMudou();
   }
 
@@ -357,6 +357,12 @@ function ColocarEmTime({ jogadorId, jaEsta, times, onMudou }: { jogadorId: strin
               </select>
               <input id="ct-num" type="number" inputMode="numeric" min={0} max={99} placeholder="Camisa" value={f.numero} onChange={(e) => setF({ ...f, numero: e.target.value })} aria-label="Número da camisa" />
             </div>
+          )}
+          {time && nascimento && (
+            <select id="ct-cat" value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })} aria-label="Categoria neste time">
+              <option value="">Categoria: automática ({categoriaNatural(nascimento)})</option>
+              {categoriasElegiveis(nascimento).map((c) => <option key={c} value={c}>Categoria: {c}</option>)}
+            </select>
           )}
           <Erro msg={erro} />
           <button className="btn btn-primario" disabled={!f.time}>Salvar</button>

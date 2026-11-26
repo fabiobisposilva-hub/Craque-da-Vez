@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
@@ -39,6 +39,7 @@ export function LancarJogo() {
   const [escalacao, setEscalacao] = useState<Escalado[]>([]);
   const [pen, setPen] = useState<DadosPenaltis>(penaltisVazio());
   const [apagandoCamp, setApagandoCamp] = useState(false);
+  const [avisoAno, setAvisoAno] = useState<string | null>(null);
   const [carregouEdicao, setCarregouEdicao] = useState(false);
   const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
@@ -123,12 +124,26 @@ export function LancarJogo() {
     return todasCategorias().filter((c) => set.has(c));
   }, [catsDoTime, elenco, temporada]);
 
+  // Categoria padrão: a que o jogador joga neste time (se valer nesta temporada), senão a natural do ano do jogo
+  const categoriaPadrao = () => {
+    const j = elenco[0];
+    if (!j) return categorias[0];
+    const doTime = d.vinculos.find((v) => v.jogador_id === j.id && v.time_id === timeId)?.categoria;
+    if (doTime && categorias.includes(doTime) && podeJogar(j.data_nascimento, doTime, temporada)) return doTime;
+    const natural = categoriaNatural(j.data_nascimento, temporada);
+    return categorias.includes(natural) ? natural : categorias[0];
+  };
+  const chaveCategoria = useRef('');
   useEffect(() => {
-    if (categorias.length && !categorias.includes(categoria)) {
-      const natural = elenco[0] ? categoriaNatural(elenco[0].data_nascimento, temporada) : categorias[0];
-      setCategoria(categorias.includes(natural) ? natural : categorias[0]);
+    if (!categorias.length || (jogoId && !carregouEdicao)) return;
+    const chave = `${timeId}|${temporada}`;
+    if (chaveCategoria.current === '' && jogoId) { chaveCategoria.current = chave; return; } // jogo em edição: mantém a categoria salva
+    if (chave !== chaveCategoria.current || !categorias.includes(categoria)) {
+      chaveCategoria.current = chave;
+      setCategoria(categoriaPadrao());
     }
-  }, [categorias, categoria, elenco, temporada]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categorias, categoria, timeId, temporada, jogoId, carregouEdicao]);
 
   // Na escalação só aparecem os elegíveis para a categoria do jogo
   const elegiveis = elenco.filter((j) => podeJogar(j.data_nascimento, categoria, temporada));
@@ -326,10 +341,27 @@ export function LancarJogo() {
       )}
 
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="selo" style={{ marginBottom: 8 }}>Categoria disputada (Sub-10, Sub-11…)</legend>
+        <legend className="selo" style={{ marginBottom: 8 }}>Temporada do jogo</legend>
+        <div className="chips">
+          {[0, 1, 2, 3].map((n) => new Date().getFullYear() - n).map((ano) => (
+            <button key={ano} type="button" className="chip" aria-pressed={temporada === ano}
+              onClick={() => { if (ano !== temporada) { setDataHora(`${ano}${dataHora.slice(4)}`); setAvisoAno(null); } }}>{ano}</button>
+          ))}
+        </div>
+        <legend className="selo" style={{ margin: '8px 0' }}>Categoria disputada (Sub-10, Sub-11…)</legend>
         <div className="chips">
           {categorias.map((c) => <button key={c} type="button" className="chip" aria-pressed={categoria === c} onClick={() => setCategoria(c)}>{c}</button>)}
         </div>
+        {elenco.map((j) => {
+          const nat = categoriaNatural(j.data_nascimento, temporada);
+          const agora = temporada === new Date().getFullYear();
+          return (
+            <p key={j.id} className="muted small">
+              Em {temporada}, {chamarDe(j)} {agora ? 'é' : temporada < new Date().getFullYear() ? 'era' : 'será'} <b style={{ color: 'var(--text)' }}>{nat}</b>: pode jogar no {nat} ou acima.
+            </p>
+          );
+        })}
+        {avisoAno && <p className="aviso">{avisoAno}</p>}
         {!categorias.length && (
           <div className="aviso pilha">
             <b style={{ color: 'var(--text)' }}>Nenhum jogador seu está no elenco do {time?.nome}.</b>
@@ -360,7 +392,16 @@ export function LancarJogo() {
         <div className="cartao pilha">
           {novoCamp === null ? (
             <>
-              <select id="lj-camp" value={campId} onChange={(e) => setCampId(e.target.value)} aria-label="Campeonato">
+              <select id="lj-camp" value={campId} aria-label="Campeonato" onChange={(e) => {
+                const id = e.target.value;
+                setCampId(id);
+                // Campeonato de outro ano: leva a data do jogo para aquele ano (as categorias se ajustam)
+                const c = campsDoTime.find((x) => x.id === id);
+                if (c && c.temporada !== temporada) {
+                  setDataHora(`${c.temporada}${dataHora.slice(4)}`);
+                  setAvisoAno(`Data do jogo ajustada para ${c.temporada}, a temporada do campeonato. Confira o dia e o horário.`);
+                } else setAvisoAno(null);
+              }}>
                 <option value="">Escolha o campeonato</option>
                 {campsDoTime.map((c) => <option key={c.id} value={c.id}>{c.nome} {c.temporada}</option>)}
               </select>

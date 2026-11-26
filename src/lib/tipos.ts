@@ -34,6 +34,8 @@ export interface JogadorTime {
   posicao: string | null;
   numero_camisa: number | null;
   status: 'convidado' | 'ativo';
+  /** Categoria em que joga neste time (padrão ao lançar jogos). */
+  categoria?: string | null;
 }
 
 export interface Campeonato {
