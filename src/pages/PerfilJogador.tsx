@@ -1,54 +1,54 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
-import { enviarFotoJogador } from '../lib/imagens';
+import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from '../components/Comuns';
+import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
 import { SalaTrofeus } from '../components/SalaTrofeus';
-import { Familia } from '../components/Familia';
-import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
 import { categoriaNatural, categoriasDaCarreira } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
-import { linhasDoJogador, resumir } from '../lib/estatisticas';
-import { golsDoJogador } from '../lib/estatisticas';
+import { golsDoJogador, linhasDoJogador, resumir } from '../lib/estatisticas';
+import { enviarFotoJogador } from '../lib/imagens';
+import { definirPapel } from '../lib/papel';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { iniciais, POSICOES } from '../lib/tipos';
 
-const ROTULO_VIS = { publico: 'Público', aprovados: 'Só aprovados', privado: 'Privado' };
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+type Aba = 'resumo' | 'jogos' | 'estatisticas';
+const POR_PAGINA = 10;
+
+function lerAba(): Aba {
+  try { const a = sessionStorage.getItem('craque:aba-jogador'); return a === 'jogos' || a === 'estatisticas' ? a : 'resumo'; } catch { return 'resumo'; }
+}
 
 export function PerfilJogador() {
   const { id } = useParams();
   const d = useDados();
   const jogador = d.jogadores.find((j) => j.id === id);
-  const [filtro, setFiltro] = useState({ time: '', categoria: '', campeonato: '', temporada: '' });
-  const [enviando, setEnviando] = useState<'' | 'foto' | 'capa'>('');
+  const [timeSel, setTimeSel] = useState('');
+  const [aba, setAbaEstado] = useState<Aba>(lerAba);
+  const setAba = (a: Aba) => { setAbaEstado(a); try { sessionStorage.setItem('craque:aba-jogador', a); } catch { /* ignora */ } };
+  const [filtro, setFiltro] = useState({ categoria: '', campeonato: '', temporada: '' });
+  const [mostrar, setMostrar] = useState(POR_PAGINA);
+  const [enviando, setEnviando] = useState<'' | 'foto' | 'papel'>('');
   const [erroFoto, setErroFoto] = useState<string | null>(null);
+  useEffect(() => setMostrar(POR_PAGINA), [timeSel, filtro]);
 
-  async function trocarImagem(tipo: 'foto' | 'capa', arquivo: File) {
+  async function trocarFoto(arquivo: File) {
     if (!jogador) return;
-    setEnviando(tipo);
-    setErroFoto(null);
+    setEnviando('foto'); setErroFoto(null);
     try {
-      const caminho = await enviarFotoJogador(jogador.id, arquivo, tipo);
-      const { error } = await supabase.from('jogadores').update(tipo === 'foto' ? { foto_url: caminho } : { capa_url: caminho }).eq('id', jogador.id);
+      const caminho = await enviarFotoJogador(jogador.id, arquivo, 'foto');
+      const { error } = await supabase.from('jogadores').update({ foto_url: caminho }).eq('id', jogador.id);
       if (error) throw error;
       await d.recarregar();
-      if (tipo === 'capa') destacarJogador(jogador.id);
-      else atualizarPapelDeParede();
-    } catch (e) {
-      setErroFoto(mensagemDeErro(e));
-    } finally {
-      setEnviando('');
-    }
+    } catch (e) { setErroFoto(mensagemDeErro(e)); } finally { setEnviando(''); }
+  }
+  async function trocarPapel(arquivo: File) {
+    if (!jogador) return;
+    setEnviando('papel'); setErroFoto(null);
+    try { await definirPapel(jogador.id, arquivo); } catch (e) { setErroFoto(mensagemDeErro(e)); } finally { setEnviando(''); }
   }
 
   const todas = useMemo(() => (jogador ? linhasDoJogador(d.jogos, d.participacoes, jogador.id) : []), [d.jogos, d.participacoes, jogador]);
-  const linhas = todas.filter(
-    ({ jogo }) =>
-      (!filtro.time || jogo.time_id === filtro.time) &&
-      (!filtro.categoria || jogo.categoria === filtro.categoria) &&
-      (!filtro.campeonato || jogo.campeonato_id === filtro.campeonato) &&
-      (!filtro.temporada || jogo.data_hora.startsWith(filtro.temporada)),
-  );
 
   if (d.carregando) return <main className="tela" aria-busy="true" />;
   if (!jogador)
@@ -59,227 +59,259 @@ export function PerfilJogador() {
       </main>
     );
 
-  const r = resumir(linhas, jogador.data_nascimento);
+  const editor = podeEditar(d, jogador.id);
   const vinculos = d.vinculos.filter((v) => v.jogador_id === jogador.id);
   const timesDoJogador = vinculos.map((v) => ({ v, t: d.times.find((t) => t.id === v.time_id)! })).filter((x) => x.t);
-  const camps = d.campeonatos.filter((c) => todas.some((l) => l.jogo.campeonato_id === c.id));
-  const categorias = [...new Set(todas.map((l) => l.jogo.categoria))];
-  const temporadas = [...new Set(todas.map((l) => l.jogo.data_hora.slice(0, 4)))].sort().reverse();
+  const doTime = todas.filter(({ jogo }) => !timeSel || jogo.time_id === timeSel);
+  const linhas = doTime.filter(({ jogo }) =>
+    (!filtro.categoria || jogo.categoria === filtro.categoria) &&
+    (!filtro.campeonato || jogo.campeonato_id === filtro.campeonato) &&
+    (!filtro.temporada || jogo.data_hora.startsWith(filtro.temporada)));
+  const r = resumir(linhas, jogador.data_nascimento);
+  const rTime = resumir(doTime, jogador.data_nascimento);
+  const camps = d.campeonatos.filter((c) => doTime.some((l) => l.jogo.campeonato_id === c.id));
   const natural = categoriaNatural(jogador.data_nascimento);
-  const maxMes = Math.max(1, ...r.porMes.map((m) => m.gols));
-  const temFiltro = Object.values(filtro).some(Boolean);
-  const editor = podeEditar(d, jogador.id);
-  if (jogador.capa_url) queueMicrotask(() => { try { if (localStorage.getItem('craque:jogador-em-destaque') !== jogador.id) destacarJogador(jogador.id); } catch { /* ignora */ } });
-  // Números separados por time
-  const porTime = timesDoJogador
-    .map(({ t }) => ({ t, r: resumir(todas.filter((l) => l.jogo.time_id === t.id), jogador.data_nascimento) }))
-    .filter((x) => x.r.jogos > 0);
+  const idsTimes = new Set(timeSel ? [timeSel] : vinculos.map((v) => v.time_id));
+  const proximos = d.jogos.filter((g) => idsTimes.has(g.time_id) && !g.substituido_por && ehFuturo(g)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
+  const vinculoSel = vinculos.find((v) => v.time_id === timeSel);
 
   return (
     <main className="tela">
-      <div className="capa">
-        {editor && (
-          <EscolherImagem id="trocar-capa" desativado={!!enviando} onArquivo={(f) => trocarImagem('capa', f)}>
-            {enviando === 'capa' ? 'Enviando…' : jogador.capa_url ? '🖼️ Trocar papel de parede' : '🖼️ Papel de parede'}
-          </EscolherImagem>
-        )}
+      {/* Cabeçalho */}
+      <div className="cabeca-jogador">
+        <Link to="/" className="voltar" aria-label="Voltar ao início" style={{ textDecoration: 'none' }}>←</Link>
+        <div className="chips" style={{ justifyContent: 'flex-end' }}>
+          <EscolherImagem id="trocar-papel" desativado={!!enviando} onArquivo={trocarPapel}>{enviando === 'papel' ? 'Enviando…' : '🖼️ Papel de parede'}</EscolherImagem>
+          {editor && <Link to={`/jogador/${jogador.id}/editar`} className="btn btn-fantasma btn-pequeno" aria-label="Alterar dados do jogador">✏️</Link>}
+        </div>
       </div>
-      <div className="perfil-cabeca">
+      <div className="linha" style={{ gap: 14 }}>
         {editor ? (
           <label htmlFor="trocar-foto" className="avatar grande editavel" title="Trocar foto">
             {jogador.foto_link ? <img src={jogador.foto_link} alt="" style={{ borderRadius: '50%' }} /> : <span>{iniciais(jogador.nome)}</span>}
             <span className="selo-camera" aria-hidden="true">{enviando === 'foto' ? '…' : '📷'}</span>
-            <input id="trocar-foto" type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) trocarImagem('foto', f); }} />
+            <input id="trocar-foto" type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) trocarFoto(f); }} />
           </label>
-        ) : (
-          <Avatar jogador={jogador} grande />
-        )}
-        <div className="cresce chips" style={{ paddingBottom: 4 }}>
-          <span className="etiqueta">🔒 {ROTULO_VIS[jogador.visibilidade]}</span>
-          {!editor && <span className="etiqueta">👀 Só visualização</span>}
+        ) : <Avatar jogador={jogador} grande />}
+        <div className="cresce" style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 22 }}>{jogador.apelido || jogador.nome.split(' ')[0]}</h1>
+          {jogador.apelido && <p className="muted small">{jogador.nome}</p>}
+          <p className="muted small">
+            {natural} · {jogador.data_nascimento.slice(0, 4)}
+            {(jogador.cidade || jogador.uf) && ` · 📍 ${[jogador.cidade, jogador.uf].filter(Boolean).join(' - ')}`}
+          </p>
         </div>
       </div>
       <Erro msg={erroFoto} />
-      <div className="linha" style={{ alignItems: 'flex-start' }}>
-        <div className="cresce">
-        <h1>{jogador.nome}</h1>
-        {jogador.apelido && <p style={{ fontWeight: 700, color: 'var(--accent-text)' }}>“{jogador.apelido}”</p>}
-        <p className="muted">
-          {natural} · {jogador.data_nascimento.slice(0, 4)}
-          {jogador.perna_dominante && ` · perna ${jogador.perna_dominante}`}
-          {(jogador.cidade || jogador.uf) && <><br />📍 {[jogador.cidade, jogador.uf].filter(Boolean).join(' - ')}</>}
-        </p>
-        </div>
-        {editor && (
-          <Link to={`/jogador/${jogador.id}/editar`} className="voltar" aria-label="Alterar dados do jogador" title="Alterar dados do jogador" style={{ textDecoration: 'none' }}>
-            <Lapis />
-          </Link>
-        )}
-      </div>
-      {timesDoJogador.length > 0 && (
-        <div className="chips">
-          {timesDoJogador.map(({ v, t }) => (
-            <Link key={t.id} to={`/times/${t.id}`} className="etiqueta" style={{ color: 'inherit', textDecoration: 'none' }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, background: t.cor ?? 'var(--accent)' }} />
-              {t.nome}
-              {v.numero_camisa != null && ` · ${v.numero_camisa}`}
-              {v.posicao && ` · ${v.posicao}`}
-              {v.status === 'convidado' && ' · convite'}
-            </Link>
-          ))}
-        </div>
-      )}
 
       {editor && <Convites jogadorId={jogador.id} vinculos={vinculos.filter((v) => v.status === 'convidado').map((v) => ({ ...v, time: d.times.find((t) => t.id === v.time_id)?.nome ?? 'Time' }))} onMudou={d.recarregar} />}
 
-      {porTime.length > 1 && (
-        <div className="chips" role="tablist" aria-label="Separar por time">
-          <button className="chip" role="tab" aria-pressed={!filtro.time} onClick={() => setFiltro({ ...filtro, time: '' })}>Todos os times</button>
-          {porTime.map(({ t }) => (
-            <button key={t.id} className="chip" role="tab" aria-pressed={filtro.time === t.id} onClick={() => setFiltro({ ...filtro, time: t.id })}>
+      {/* Seletor de time: vale para a tela inteira */}
+      {timesDoJogador.length > 0 && (
+        <div className="seletor-time" role="tablist" aria-label="Time">
+          {timesDoJogador.length > 1 && (
+            <button role="tab" className="chip" aria-pressed={!timeSel} onClick={() => setTimeSel('')}>Todos</button>
+          )}
+          {timesDoJogador.map(({ t }) => (
+            <button key={t.id} role="tab" className="chip" aria-pressed={timeSel === t.id || timesDoJogador.length === 1} onClick={() => setTimeSel(t.id)}>
               <Escudo nome={t.nome} url={t.escudo_url} cor={t.cor} tamanho={22} /> {t.nome}
             </button>
           ))}
         </div>
       )}
+      {vinculoSel && (
+        <p className="muted small" style={{ textAlign: 'center', marginTop: -6 }}>
+          {[vinculoSel.categoria, vinculoSel.posicao, vinculoSel.numero_camisa != null && `camisa ${vinculoSel.numero_camisa}`].filter(Boolean).join(' · ')}
+        </p>
+      )}
 
-      <SalaTrofeus campeonatos={camps} nomeDoTime={(id) => d.times.find((t) => t.id === id)?.nome}
-        vazio={todas.length ? 'Quando um campeonato terminar com título, marque “🏆 Campeão” na página do time e o troféu aparece aqui.' : undefined} />
-
-      <div className="numeros">
-        <div className="numero"><b>{r.jogos}</b><span>Jogos</span></div>
-        <div className="numero"><b>{r.gols}</b><span>Gols</span>{r.golsPenaltis > 0 && <small className="numero-extra">{r.golsPenaltis} nos pênaltis</small>}</div>
-        <div className="numero"><b>{r.assistencias}</b><span>Assist.</span></div>
-        <div className="numero"><b>{r.cartoes}</b><span>Cartões</span></div>
+      {/* Abas */}
+      <div className="abas" role="tablist">
+        {([['resumo', 'Resumo'], ['jogos', 'Jogos'], ['estatisticas', 'Estatísticas']] as const).map(([k, v]) => (
+          <button key={k} role="tab" aria-selected={aba === k} className={'aba' + (aba === k ? ' ativa' : '')} onClick={() => setAba(k)}>{v}</button>
+        ))}
       </div>
 
-      {todas.length === 0 ? (
-        <div className="vazio">
-          <div className="bola" aria-hidden="true">⚽</div>
-          <h3>Nenhum jogo ainda</h3>
-          <p className="muted small">{timesDoJogador.length ? 'Lance o primeiro jogo para começar a carreira.' : 'Coloque o jogador num time e lance o primeiro jogo.'}</p>
-          {timesDoJogador.length ? (
-            <Link className="btn btn-primario" to="/lancar">Lance o primeiro jogo</Link>
-          ) : (
-            <Link className="btn btn-primario" to="/times/novo">Criar time</Link>
-          )}
-        </div>
-      ) : (
+      {aba === 'resumo' && (
         <>
-          <section className="pilha" aria-label="Filtros">
-            <div className="grade-2">
-              <select id="f-time" aria-label="Time" value={filtro.time} onChange={(e) => setFiltro({ ...filtro, time: e.target.value })}>
-                <option value="">Todos os times</option>
-                {timesDoJogador.map(({ t }) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
-              <select id="f-temp" aria-label="Temporada" value={filtro.temporada} onChange={(e) => setFiltro({ ...filtro, temporada: e.target.value })}>
-                <option value="">Todas as temporadas</option>
-                {temporadas.map((t) => <option key={t}>{t}</option>)}
-              </select>
-              <select id="f-cat" aria-label="Categoria" value={filtro.categoria} onChange={(e) => setFiltro({ ...filtro, categoria: e.target.value })}>
-                <option value="">Todas as categorias</option>
-                {categorias.map((c) => <option key={c}>{c}</option>)}
-              </select>
-              <select id="f-camp" aria-label="Campeonato" value={filtro.campeonato} onChange={(e) => setFiltro({ ...filtro, campeonato: e.target.value })}>
-                <option value="">Todos os campeonatos</option>
-                {camps.map((c) => <option key={c.id} value={c.id}>{c.nome} {c.temporada}</option>)}
-              </select>
-            </div>
-            {temFiltro && (
-              <button className="link" style={{ alignSelf: 'flex-start' }} onClick={() => setFiltro({ time: '', categoria: '', campeonato: '', temporada: '' })}>
-                Limpar filtros
-              </button>
-            )}
-          </section>
+          <div className="numeros">
+            <div className="numero"><b>{rTime.jogos}</b><span>Jogos</span></div>
+            <div className="numero"><b>{rTime.gols}</b><span>Gols</span>{rTime.golsPenaltis > 0 && <small className="numero-extra">{rTime.golsPenaltis} nos pênaltis</small>}</div>
+            <div className="numero"><b>{rTime.assistencias}</b><span>Assist.</span></div>
+            <div className="numero"><b>{rTime.cartoes}</b><span>Cartões</span></div>
+          </div>
 
-          <section className="cartao pilha">
-            <div className="linha" style={{ flexWrap: 'wrap', gap: 16 }}>
-              <span className="linha" style={{ gap: 6 }}><Resultado r="V" /> <b className="num">{r.v}</b></span>
-              <span className="linha" style={{ gap: 6 }}><Resultado r="E" /> <b className="num">{r.e}</b></span>
-              <span className="linha" style={{ gap: 6 }}><Resultado r="D" /> <b className="num">{r.d}</b></span>
-              <span className="cresce" style={{ textAlign: 'right' }}><b className="num">{r.aproveitamento}%</b> <span className="muted small">aproveitamento</span></span>
-            </div>
-            <p className="small muted">
-              Média de <b style={{ color: 'var(--text)' }}>{r.media.toFixed(2).replace('.', ',')}</b> gol por jogo · maior sequência marcando: <b style={{ color: 'var(--text)' }}>{r.maiorSequencia}</b> jogo{r.maiorSequencia === 1 ? '' : 's'}
-              {r.craque > 0 && <> · <span className="estrela">★</span> craque do jogo {r.craque}×</>}
-            </p>
-            {r.acima.jogos > 0 && (
-              <p className="small">
-                <b>{r.gols - r.acima.gols}</b> gols no {natural} e <b>{r.acima.gols}</b> jogando acima ({r.acima.categorias.join(', ')}), em {r.acima.jogos} jogo{r.acima.jogos === 1 ? '' : 's'}.
-              </p>
-            )}
-          </section>
+          {proximos[0] && (
+            <Link to={`/jogo/${proximos[0].id}`} className="cartao clicavel pilha" style={{ gap: 10 }}>
+              <span className="selo">Próximo jogo</span>
+              <SeloAgendado data={proximos[0].data_hora} />
+              <Confronto jogo={proximos[0]} time={d.times.find((t) => t.id === proximos[0].time_id)} escudoAdversario={escudoDoAdversario(d, proximos[0].adversario)} />
+            </Link>
+          )}
 
           {(() => {
-            const minhas = linhas.flatMap(({ jogo }) => (jogo.cobrancas ?? []).filter((c) => c.lado === 'nos' && c.jogador_id === jogador.id));
-            if (!minhas.length) return null;
-            const gols = minhas.filter((c) => c.resultado === 'gol').length;
-            return <p className="cartao small">🥅 Pênaltis em disputas: <b>{gols} de {minhas.length}</b> convertidos</p>;
+            const ultimo = [...doTime].reverse()[0];
+            if (!ultimo) return null;
+            return (
+              <Link to={`/jogo/${ultimo.jogo.id}`} className="cartao clicavel pilha" style={{ gap: 10 }}>
+                <span className="selo">Último jogo</span>
+                <Confronto jogo={ultimo.jogo} time={d.times.find((t) => t.id === ultimo.jogo.time_id)} escudoAdversario={escudoDoAdversario(d, ultimo.jogo.adversario)} />
+                {(golsDoJogador(ultimo.jogo, ultimo.part) > 0 || ultimo.part.assistencias > 0 || ultimo.part.craque_do_jogo) && (
+                  <p className="small" style={{ textAlign: 'center' }}>
+                    {ultimo.part.craque_do_jogo && '⭐ Craque do jogo · '}
+                    {golsDoJogador(ultimo.jogo, ultimo.part) > 0 && `⚽ ${golsDoJogador(ultimo.jogo, ultimo.part)} gol${golsDoJogador(ultimo.jogo, ultimo.part) > 1 ? 's' : ''} `}
+                    {ultimo.part.assistencias > 0 && `· 🅰 ${ultimo.part.assistencias} assist.`}
+                  </p>
+                )}
+              </Link>
+            );
           })()}
 
-          {porTime.length > 1 && !filtro.time && (
-            <section className="cartao" style={{ overflowX: 'auto' }}>
-              <h3 style={{ marginBottom: 8 }}>Por time</h3>
-              <table className="tabela">
-                <thead><tr><th>Time</th><th className="n">J</th><th className="n">Gols</th><th className="n">Assist.</th><th className="n">Cart.</th><th className="n">Aprov.</th></tr></thead>
-                <tbody>
-                  {porTime.map(({ t, r: rt }) => (
-                    <tr key={t.id} onClick={() => setFiltro({ ...filtro, time: t.id })} style={{ cursor: 'pointer' }}>
-                      <td><span className="vs"><Escudo nome={t.nome} url={t.escudo_url} cor={t.cor} tamanho={24} /> {t.nome}</span></td>
-                      <td className="n">{rt.jogos}</td><td className="n"><b>{rt.gols}</b></td><td className="n">{rt.assistencias}</td><td className="n">{rt.cartoes}</td><td className="n">{rt.aproveitamento}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="muted small" style={{ marginTop: 8 }}>Toque num time para ver só os números dele.</p>
-            </section>
+          <SalaTrofeus campeonatos={camps} nomeDoTime={(tid) => d.times.find((t) => t.id === tid)?.nome}
+            vazio={doTime.length ? 'Quando um campeonato terminar com título, marque “🏆 Campeão” na página do time e o troféu aparece aqui.' : undefined} />
+
+          {todas.length === 0 && (
+            <div className="vazio">
+              <div className="bola" aria-hidden="true">⚽</div>
+              <h3>Nenhum jogo ainda</h3>
+              {editor && (timesDoJogador.length
+                ? <Link className="btn btn-primario" to="/lancar">Lançar o primeiro jogo</Link>
+                : <Link className="btn btn-primario" to="/times/novo">Criar time</Link>)}
+            </div>
           )}
-
-          {r.porMes.length > 1 && (
-            <section className="cartao">
-              <h3>Gols mês a mês</h3>
-              <div className="barras" role="img" aria-label={r.porMes.map((m) => `${m.mes}: ${m.gols} gols`).join(', ')}>
-                {r.porMes.slice(-12).map((m) => (
-                  <div className="barra" key={m.mes}>
-                    <b className="num">{m.gols}</b>
-                    <i style={{ height: `${(m.gols / maxMes) * 100}%` }} />
-                    <small>{MESES[Number(m.mes.slice(5)) - 1]}</small>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-
-          <section className="cartao">
-            <h3 style={{ marginBottom: 12 }}>Últimos jogos</h3>
-            {[...linhas].reverse().slice(0, 10).map(({ jogo, part }) => (
-              <Link key={jogo.id} to={`/jogo/${jogo.id}`} className="lista-jogo" style={{ color: 'inherit', textDecoration: 'none' }}>
-                <Resultado r={jogo.resultado} />
-                <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={32} />
-                <div className="cresce" style={{ minWidth: 0 }}>
-                  <b className="num">{jogo.gols_pro} × {jogo.gols_contra}</b> {jogo.adversario}
-                  <div><TipoJogo jogo={jogo} campeonato={d.campeonatos.find((c) => c.id === jogo.campeonato_id)} /></div>
-                  <p className="muted small">
-                    {dataCurta(jogo.data_hora)} · {d.times.find((t) => t.id === jogo.time_id)?.nome} · {jogo.categoria}
-                  </p>
-                  {part.observacao && <p className="small" style={{ marginTop: 2 }}>“{part.observacao}”</p>}
-                </div>
-                <div className="small" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {part.craque_do_jogo && <span className="estrela" title="Craque do jogo">★ </span>}
-                  {golsDoJogador(jogo, part) > 0 && <span>⚽{golsDoJogador(jogo, part)} </span>}
-                  {part.assistencias > 0 && <span>🅰{part.assistencias} </span>}
-                  {part.amarelos > 0 && <i className="cartao-ico am" title="Amarelo" />}
-                  {part.vermelho && <> <i className="cartao-ico vm" title="Vermelho" /></>}
-                </div>
-              </Link>
-            ))}
-          </section>
+          {editor && <ColocarEmTime jogadorId={jogador.id} nascimento={jogador.data_nascimento} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
         </>
       )}
 
-      {editor && <ColocarEmTime jogadorId={jogador.id} nascimento={jogador.data_nascimento} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
-      {editor && <Familia jogadorId={jogador.id} nome={jogador.apelido || jogador.nome.split(' ')[0]} />}
+      {aba === 'jogos' && (
+        <>
+          {proximos.length > 0 && (
+            <section className="pilha" style={{ gap: 8 }}>
+              <span className="selo">Agendados</span>
+              {proximos.map((g) => (
+                <Link key={g.id} to={`/jogo/${g.id}`} className="jogo-linha">
+                  <span className="jogo-linha-data agendado">{dataCurta(g.data_hora)}</span>
+                  <Escudo nome={g.adversario} url={escudoDoAdversario(d, g.adversario)} tamanho={28} />
+                  <span className="cresce jogo-linha-nome">vs {g.adversario}</span>
+                  <span className="tipo-jogo tipo-campeonato" style={{ background: 'rgba(232,0,11,0.18)', color: '#ffb3b6', borderColor: 'var(--accent)' }}>Agendado</span>
+                </Link>
+              ))}
+            </section>
+          )}
+          {doTime.length === 0 && <p className="muted small" style={{ textAlign: 'center' }}>Nenhum jogo disputado ainda.</p>}
+          {(() => {
+            const lista = [...doTime].reverse().slice(0, mostrar);
+            const porAno = new Map<string, typeof lista>();
+            for (const l of lista) { const a = l.jogo.data_hora.slice(0, 4); porAno.set(a, [...(porAno.get(a) ?? []), l]); }
+            return [...porAno].map(([ano, ls]) => (
+              <section key={ano} className="pilha" style={{ gap: 8 }}>
+                <span className="selo">Temporada {ano}</span>
+                {ls.map(({ jogo, part }) => {
+                  const g = golsDoJogador(jogo, part);
+                  return (
+                    <Link key={jogo.id} to={`/jogo/${jogo.id}`} className="jogo-linha">
+                      <Resultado r={jogo.resultado} />
+                      <span className="jogo-linha-data">{dataCurta(jogo.data_hora)}</span>
+                      <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={28} />
+                      <span className="cresce jogo-linha-nome">
+                        <b className="num">{jogo.gols_pro}×{jogo.gols_contra}</b> {jogo.adversario}
+                        {jogo.penaltis && jogo.penaltis_pro != null && <span className="penaltis-mini"> ({jogo.penaltis_pro}×{jogo.penaltis_contra} pên.)</span>}
+                      </span>
+                      <span className="jogo-linha-mim">{part.craque_do_jogo && '⭐'}{g > 0 && `⚽${g}`}{part.assistencias > 0 && ` 🅰${part.assistencias}`}</span>
+                    </Link>
+                  );
+                })}
+              </section>
+            ));
+          })()}
+          {doTime.length > mostrar && (
+            <button className="btn btn-fantasma" onClick={() => setMostrar(mostrar + POR_PAGINA)}>Ver mais {Math.min(POR_PAGINA, doTime.length - mostrar)} jogos</button>
+          )}
+        </>
+      )}
+
+      {aba === 'estatisticas' && (
+        <>
+          {doTime.length === 0 ? <p className="muted small" style={{ textAlign: 'center' }}>As estatísticas aparecem depois do primeiro jogo.</p> : (
+            <>
+              <div className="grade-2">
+                <select id="f-temp" aria-label="Temporada" value={filtro.temporada} onChange={(e) => setFiltro({ ...filtro, temporada: e.target.value })}>
+                  <option value="">Todas as temporadas</option>
+                  {[...new Set(doTime.map((l) => l.jogo.data_hora.slice(0, 4)))].sort().reverse().map((t) => <option key={t}>{t}</option>)}
+                </select>
+                <select id="f-cat" aria-label="Categoria" value={filtro.categoria} onChange={(e) => setFiltro({ ...filtro, categoria: e.target.value })}>
+                  <option value="">Todas as categorias</option>
+                  {[...new Set(doTime.map((l) => l.jogo.categoria))].map((c) => <option key={c}>{c}</option>)}
+                </select>
+                {camps.length > 0 && (
+                  <select id="f-camp" aria-label="Campeonato" style={{ gridColumn: '1 / -1' }} value={filtro.campeonato} onChange={(e) => setFiltro({ ...filtro, campeonato: e.target.value })}>
+                    <option value="">Todos os campeonatos</option>
+                    {camps.map((c) => <option key={c.id} value={c.id}>{c.nome} {c.temporada}</option>)}
+                  </select>
+                )}
+              </div>
+
+              <div className="numeros">
+                <div className="numero"><b>{r.jogos}</b><span>Jogos</span></div>
+                <div className="numero"><b>{r.gols}</b><span>Gols</span></div>
+                <div className="numero"><b>{r.assistencias}</b><span>Assist.</span></div>
+                <div className="numero"><b>{r.cartoes}</b><span>Cartões</span></div>
+              </div>
+
+              <section className="cartao pilha">
+                <div className="linha" style={{ flexWrap: 'wrap', gap: 16 }}>
+                  <span className="linha" style={{ gap: 6 }}><Resultado r="V" /> <b className="num">{r.v}</b></span>
+                  <span className="linha" style={{ gap: 6 }}><Resultado r="E" /> <b className="num">{r.e}</b></span>
+                  <span className="linha" style={{ gap: 6 }}><Resultado r="D" /> <b className="num">{r.d}</b></span>
+                  <span className="cresce" style={{ textAlign: 'right' }}><b className="num">{r.aproveitamento}%</b> <span className="muted small">aproveitamento</span></span>
+                </div>
+                <ul className="lista-stats">
+                  <li><span>Média de gols por jogo</span><b className="num">{r.media.toFixed(2).replace('.', ',')}</b></li>
+                  <li><span>Maior sequência marcando</span><b className="num">{r.maiorSequencia} jogo{r.maiorSequencia === 1 ? '' : 's'}</b></li>
+                  {r.craque > 0 && <li><span>⭐ Craque do jogo</span><b className="num">{r.craque}×</b></li>}
+                  {r.golsPenaltis > 0 && <li><span>🥅 Gols em disputa de pênaltis</span><b className="num">{r.golsPenaltis}</b></li>}
+                  {r.acima.jogos > 0 && <li><span>Jogando acima da categoria ({r.acima.categorias.join(', ')})</span><b className="num">{r.acima.gols} gols em {r.acima.jogos}</b></li>}
+                </ul>
+              </section>
+
+              {r.porMes.length > 1 && (
+                <section className="cartao">
+                  <h3>Gols mês a mês</h3>
+                  <div className="barras" role="img" aria-label={r.porMes.map((m) => `${m.mes}: ${m.gols} gols`).join(', ')}>
+                    {r.porMes.slice(-12).map((m) => (
+                      <div className="barra" key={m.mes}>
+                        <b className="num">{m.gols}</b>
+                        <i style={{ height: `${(m.gols / Math.max(1, ...r.porMes.map((x) => x.gols))) * 100}%` }} />
+                        <small>{MESES[Number(m.mes.slice(5)) - 1]}</small>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {!timeSel && timesDoJogador.length > 1 && (
+                <section className="cartao" style={{ overflowX: 'auto' }}>
+                  <h3 style={{ marginBottom: 8 }}>Comparar times</h3>
+                  <table className="tabela">
+                    <thead><tr><th>Time</th><th className="n">J</th><th className="n">Gols</th><th className="n">Assist.</th><th className="n">Aprov.</th></tr></thead>
+                    <tbody>
+                      {timesDoJogador.map(({ t }) => {
+                        const rt = resumir(todas.filter((l) => l.jogo.time_id === t.id), jogador.data_nascimento);
+                        return rt.jogos > 0 && (
+                          <tr key={t.id} onClick={() => setTimeSel(t.id)} style={{ cursor: 'pointer' }}>
+                            <td><span className="vs"><Escudo nome={t.nome} url={t.escudo_url} cor={t.cor} tamanho={22} /> {t.nome}</span></td>
+                            <td className="n">{rt.jogos}</td><td className="n"><b>{rt.gols}</b></td><td className="n">{rt.assistencias}</td><td className="n">{rt.aproveitamento}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+            </>
+          )}
+        </>
+      )}
     </main>
   );
 }
@@ -372,14 +404,5 @@ function ColocarEmTime({ jogadorId, nascimento, jaEsta, times, onMudou }: { joga
       )}
       <button type="button" className="link" onClick={() => setAberto(false)}>Cancelar</button>
     </form>
-  );
-}
-
-function Lapis() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z" />
-      <path d="M13.5 6.5l4 4" />
-    </svg>
   );
 }

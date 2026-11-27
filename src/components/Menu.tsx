@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase';
 
 const I = {
   inicio: <path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" />,
-  jogos: (
+  agenda: (
     <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7l4 3-1.5 5h-5L8 10z" />
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
     </>
   ),
   mais: <path d="M12 5v14M5 12h14" />,
@@ -47,9 +47,9 @@ export function Menu() {
           </span>
           Início
         </NavLink>
-        <NavLink to="/jogos">
-          <Icone d={I.jogos} />
-          Jogos
+        <NavLink to="/agenda">
+          <Icone d={I.agenda} />
+          Agenda
         </NavLink>
         <NavLink to="/lancar" className="mais" aria-label="Lançar jogo">
           <Icone d={I.mais} />

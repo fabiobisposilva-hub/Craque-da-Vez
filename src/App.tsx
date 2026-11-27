@@ -14,7 +14,7 @@ import { CriarConta } from './pages/CriarConta';
 import { EditarJogador } from './pages/EditarJogador';
 import { Entrar, NovaSenha } from './pages/Entrar';
 import { Inicio } from './pages/Inicio';
-import { Jogos } from './pages/Jogos';
+import { Agenda } from './pages/Agenda';
 import { JogoDetalhe } from './pages/JogoDetalhe';
 import { LancarJogo } from './pages/LancarJogo';
 import { PerfilJogador } from './pages/PerfilJogador';
@@ -61,7 +61,8 @@ function Rotas() {
     <Routes>
       <Route element={<ComMenu />}>
         <Route path="/" element={<Inicio />} />
-        <Route path="/jogos" element={<Jogos />} />
+        <Route path="/agenda" element={<Agenda />} />
+        <Route path="/jogos" element={<Navigate to="/agenda" replace />} />
         <Route path="/jogo/:id" element={<JogoDetalhe />} />
         <Route path="/jogo/:id/editar" element={<LancarJogo key="editar" />} />
         <Route path="/lancar" element={<LancarJogo />} />

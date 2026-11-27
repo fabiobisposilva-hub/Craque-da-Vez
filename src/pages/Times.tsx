@@ -293,8 +293,8 @@ export function TimeDetalhe() {
 
       {jogos.length > 0 && (
         <section className="cartao">
-          <h3 style={{ marginBottom: 12 }}>Jogos</h3>
-          {jogos.slice(0, 15).map((j) => (
+          <h3 style={{ marginBottom: 12 }}>Últimos jogos do time {jogos.length > 5 && <span className="muted small">(5 de {jogos.length})</span>}</h3>
+          {jogos.slice(0, 5).map((j) => (
             <div key={j.id} className="lista-jogo">
               <Resultado r={j.resultado} />
               <div className="cresce"><b className="num">{j.gols_pro} × {j.gols_contra}</b> {j.adversario}

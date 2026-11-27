@@ -57,7 +57,7 @@ export function JogoDetalhe() {
     setExcluindo(false);
     if (error) return setErro(mensagemDeErro(error));
     if (!count) return setErro('Este jogo não pode ser excluído por você. Só quem lançou o jogo (ou o técnico do time) pode excluir.');
-    nav('/jogos', { replace: true });
+    nav(-1);
   }
 
   return (

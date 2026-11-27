@@ -4,6 +4,8 @@ import { Erro, Rodape, Topo } from '../components/Comuns';
 import { useAuth } from '../lib/auth';
 import { mensagemDeErro, supabase } from '../lib/supabase';
 import { PARENTESCOS } from '../lib/tipos';
+import { Familia } from '../components/Familia';
+import { podeEditar, useDados } from '../lib/dados';
 
 export function Conta() {
   const { sessao } = useAuth();
@@ -13,6 +15,9 @@ export function Conta() {
   const [parentesco, setParentesco] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [admin, setAdmin] = useState(false);
+  const d = useDados();
+  const meus = d.jogadores.filter((j) => podeEditar(d, j.id));
+  const [aberto, setAberto] = useState<string | null>(null);
   useEffect(() => {
     supabase.rpc('eh_admin').then(({ data }) => setAdmin(data === true));
   }, []);
@@ -41,6 +46,23 @@ export function Conta() {
 
       {admin && (
         <Link to="/admin" className="btn btn-primario">📊 Painel do administrador</Link>
+      )}
+
+      {meus.length > 0 && (
+        <section className="pilha">
+          <h2>👨‍👩‍👦 Família e acessos</h2>
+          <p className="muted small">Convide a família, veja quem está usando e bloqueie ou libere cada pessoa.</p>
+          {meus.map((j) => (
+            aberto === j.id || meus.length === 1 ? (
+              <Familia key={j.id} jogadorId={j.id} nome={j.apelido || j.nome.split(' ')[0]} />
+            ) : (
+              <button key={j.id} className="cartao clicavel linha" style={{ font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => setAberto(j.id)}>
+                <b className="cresce">{j.apelido || j.nome.split(' ')[0]}</b>
+                <span className="muted small">Abrir ›</span>
+              </button>
+            )
+          ))}
+        </section>
       )}
 
       <form id="convite" className="cartao pilha" onSubmit={aceitar}>

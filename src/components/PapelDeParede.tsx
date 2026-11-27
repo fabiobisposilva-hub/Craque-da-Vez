@@ -1,40 +1,30 @@
 import { useEffect, useState } from 'react';
-import { linksDasFotos } from '../lib/imagens';
-import { supabase } from '../lib/supabase';
+import { useLocation } from 'react-router-dom';
+import { linkDoPapel } from '../lib/papel';
 
-const CHAVE = 'craque:jogador-em-destaque';
-
-/** Marca qual jogador dá o papel de parede (o último perfil aberto). */
-export function destacarJogador(id: string) {
-  try { localStorage.setItem(CHAVE, id); } catch { /* sem armazenamento: usa o primeiro jogador */ }
-  window.dispatchEvent(new Event('craque:papel'));
+/** Qual papel de parede vale nesta tela: Início usa o da pessoa; a tela do jogador usa o que ela escolheu para ele. */
+function alvoDaRota(caminho: string): string | null {
+  if (caminho === '/') return 'inicio';
+  const m = caminho.match(/^\/jogador\/([0-9a-f-]{36})$/);
+  return m ? m[1] : null;
 }
 
-/** Avisa que a imagem mudou (depois de enviar uma nova). */
-export function atualizarPapelDeParede() {
-  window.dispatchEvent(new Event('craque:papel'));
-}
-
-/** Imagem de fundo do app inteiro, atrás de todas as telas, com camada escura para leitura. */
+/** Imagem de fundo atrás da tela inteira, com camada escura para leitura. Cada pessoa escolhe a sua. */
 export function PapelDeParede() {
+  const { pathname } = useLocation();
+  const alvo = alvoDaRota(pathname);
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
-    async function carregar() {
-      const { data } = await supabase.from('jogadores').select('id, capa_url').not('capa_url', 'is', null);
-      const lista = (data ?? []) as { id: string; capa_url: string }[];
-      let escolhido: string | null = null;
-      try { escolhido = localStorage.getItem(CHAVE); } catch { /* ignora */ }
-      const j = lista.find((x) => x.id === escolhido) ?? lista[0];
-      if (!j) return vivo && setUrl(null);
-      const links = await linksDasFotos([j.capa_url]);
-      if (vivo) setUrl(links[j.capa_url] ?? null);
-    }
+    const carregar = () => {
+      if (!alvo) return setUrl(null);
+      linkDoPapel(alvo).then((u) => vivo && setUrl(u));
+    };
     carregar();
     window.addEventListener('craque:papel', carregar);
     return () => { vivo = false; window.removeEventListener('craque:papel', carregar); };
-  }, []);
+  }, [alvo]);
 
   useEffect(() => {
     document.body.classList.toggle('com-papel', !!url);

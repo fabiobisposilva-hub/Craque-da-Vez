@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
@@ -40,6 +40,7 @@ export function LancarJogo() {
   const [pen, setPen] = useState<DadosPenaltis>(penaltisVazio());
   const [apagandoCamp, setApagandoCamp] = useState(false);
   const [avisoAno, setAvisoAno] = useState<string | null>(null);
+  const [detalhes, setDetalhes] = useState(false);
   const [carregouEdicao, setCarregouEdicao] = useState(false);
   const [enviandoEscudo, setEnviandoEscudo] = useState(false);
   const [timeId, setTimeId] = useState('');
@@ -97,6 +98,7 @@ export function LancarJogo() {
     setGolsPro(g.gols_pro);
     setGolsContra(g.gols_contra);
     setResumo(g.resumo ?? '');
+    setDetalhes(true);
     setEscalacao(g.escalacao ?? []);
     setPen({ penaltis: !!g.penaltis, penaltis_pro: g.penaltis_pro ?? null, penaltis_contra: g.penaltis_contra ?? null, cobrancas: g.cobrancas ?? [], goleiro_penaltis: g.goleiro_penaltis ?? '' });
     const novo: Record<string, Part> = {};
@@ -124,43 +126,11 @@ export function LancarJogo() {
     return todasCategorias().filter((c) => set.has(c));
   }, [catsDoTime, elenco, temporada]);
 
-  // Categoria padrão: a que o jogador joga neste time (se valer nesta temporada), senão a natural do ano do jogo
-  const categoriaPadrao = () => {
-    const j = elenco[0];
-    if (!j) return categorias[0];
-    const doTime = d.vinculos.find((v) => v.jogador_id === j.id && v.time_id === timeId)?.categoria;
-    if (doTime && categorias.includes(doTime) && podeJogar(j.data_nascimento, doTime, temporada)) return doTime;
-    const natural = categoriaNatural(j.data_nascimento, temporada);
-    return categorias.includes(natural) ? natural : categorias[0];
-  };
-  // Time em que ele jogou numa categoria de anos anteriores (ex.: Penarol no Sub-9):
-  // ao escolher o time num jogo novo, a temporada vai para o ano em que ele tinha essa categoria.
-  const timeAnterior = useRef('');
+  // A categoria é escolhida por quem lança (o app não escolhe sozinho).
+  // Se o ano ou o time mudar e a escolhida deixar de valer, ela é desmarcada.
   useEffect(() => {
-    if (jogoId || !timeId || timeAnterior.current === timeId) return;
-    timeAnterior.current = timeId;
-    const j = elenco[0];
-    const cat = j && d.vinculos.find((v) => v.jogador_id === j.id && v.time_id === timeId)?.categoria;
-    if (!j || !cat || !/^Sub-\d+$/.test(cat)) return;
-    if (podeJogar(j.data_nascimento, cat, temporada)) return;
-    const ano = Number(j.data_nascimento.slice(0, 4)) + Number(cat.slice(4));
-    if (ano > new Date().getFullYear()) return;
-    setDataHora(`${ano}${dataHora.slice(4)}`);
-    setAvisoAno(`No ${d.times.find((t) => t.id === timeId)?.nome}, ${chamarDe(j)} jogou no ${cat}, então a temporada foi para ${ano}. Confira o dia e o horário.`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeId, elenco, jogoId]);
-
-  const chaveCategoria = useRef('');
-  useEffect(() => {
-    if (!categorias.length || (jogoId && !carregouEdicao)) return;
-    const chave = `${timeId}|${temporada}`;
-    if (chaveCategoria.current === '' && jogoId) { chaveCategoria.current = chave; return; } // jogo em edição: mantém a categoria salva
-    if (chave !== chaveCategoria.current || !categorias.includes(categoria)) {
-      chaveCategoria.current = chave;
-      setCategoria(categoriaPadrao());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categorias, categoria, timeId, temporada, jogoId, carregouEdicao]);
+    if (categoria && categorias.length && !categorias.includes(categoria) && (!jogoId || carregouEdicao)) setCategoria('');
+  }, [categorias, categoria, jogoId, carregouEdicao]);
 
   // Na escalação só aparecem os elegíveis para a categoria do jogo
   const elegiveis = elenco.filter((j) => podeJogar(j.data_nascimento, categoria, temporada));
@@ -343,7 +313,7 @@ export function LancarJogo() {
           {d.times.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </label>
-      {time && (
+      {time && detalhes && (
         <div className="linha">
           <Escudo nome={time.nome} url={time.escudo_url} cor={time.cor} tamanho={44} />
           {time.dono_id === d.meuId ? (
@@ -466,7 +436,7 @@ export function LancarJogo() {
             {[...new Set([...d.adversarios.map((a) => a.nome), ...d.jogos.map((g) => g.adversario)])].sort().map((n) => <option key={n} value={n} />)}
           </datalist>
         </label>
-        {adversario.trim() && (
+        {detalhes && adversario.trim() && (
           <div className="linha" style={{ gridColumn: '1 / -1' }}>
             <Escudo nome={adversario} url={escudoDoAdversario(d, adversario)} tamanho={44} />
             <EscolherImagem id="escudo-adv" desativado={enviandoEscudo} onArquivo={trocarEscudoAdversario}>
@@ -478,17 +448,17 @@ export function LancarJogo() {
           Data e horário
           <input id="lj-data" type="datetime-local" value={dataHora} onChange={(e) => setDataHora(e.target.value)} />
         </label>
-        <div className="chips" style={{ gridColumn: '1 / -1' }}>
+        {detalhes && <div className="chips" style={{ gridColumn: '1 / -1' }}>
           <button type="button" className="chip" aria-pressed={casaFora === 'casa'} onClick={() => setCasaFora(casaFora === 'casa' ? '' : 'casa')}>Em casa</button>
           <button type="button" className="chip" aria-pressed={casaFora === 'fora'} onClick={() => setCasaFora(casaFora === 'fora' ? '' : 'fora')}>Fora</button>
-        </div>
-        <label className="campo" style={{ gridColumn: '1 / -1' }}>
+        </div>}
+        {detalhes && <label className="campo" style={{ gridColumn: '1 / -1' }}>
           📍 Local da partida (opcional)
           <input id="lj-local" list="lista-locais" autoComplete="off" placeholder="Ex.: Ginásio do Minas, Asa Sul" value={local} onChange={(e) => setLocal(e.target.value)} />
           <datalist id="lista-locais">
             {[...new Set(d.jogos.map((g) => g.local?.trim()).filter((x): x is string => !!x))].sort().map((n) => <option key={n} value={n} />)}
           </datalist>
-        </label>
+        </label>}
       </div>
 
       {!jogoId && (
@@ -516,7 +486,8 @@ export function LancarJogo() {
       )}
 
       <h2>Jogadores</h2>
-      {elegiveis.length === 0 && <p className="muted small">Nenhum jogador seu neste time pode jogar no {categoria}.</p>}
+      {!categoria && <p className="aviso">Escolha a <b>categoria</b> lá em cima para marcar os gols.</p>}
+      {categoria && elegiveis.length === 0 && <p className="muted small">Nenhum jogador seu neste time pode jogar no {categoria}.</p>}
       {elenco.filter((j) => !elegiveis.includes(j)).map((j) => (
         <p key={j.id} className="muted small">{j.nome} não aparece: é {categoriaNatural(j.data_nascimento, temporada)} e não pode jogar abaixo.</p>
       ))}
@@ -532,6 +503,7 @@ export function LancarJogo() {
               <>
                 <div className="linha"><span className="cresce">Gols</span><Contador valor={x.gols} onChange={(n) => { setP(j.id, { gols: n }); const outros = elegiveis.reduce((t, o) => t + (o.id !== j.id && p(o.id).jogou ? p(o.id).gols : 0), 0); if (outros + n > golsPro) setGolsPro(outros + n); }} rotulo={`gols de ${j.nome}`} /></div>
                 <div className="linha"><span className="cresce">Assistências</span><Contador valor={x.assistencias} onChange={(n) => setP(j.id, { assistencias: n })} rotulo={`assistências de ${j.nome}`} /></div>
+                {detalhes && <>
                 <div className="linha"><span className="cresce"><i className="cartao-ico am" /> Amarelos</span><Contador valor={x.amarelos} max={2} onChange={(n) => setP(j.id, { amarelos: n })} rotulo={`amarelos de ${j.nome}`} /></div>
                 <div className="chips">
                   <button type="button" className="chip" aria-pressed={x.vermelho} onClick={() => setP(j.id, { vermelho: !x.vermelho, suspenso_proximo: !x.vermelho && x.suspenso_proximo })}>
@@ -544,6 +516,7 @@ export function LancarJogo() {
                   <button type="button" className="chip" aria-pressed={x.craque_do_jogo} onClick={() => setP(j.id, { craque_do_jogo: !x.craque_do_jogo })}>⭐ Craque do jogo</button>
                 </div>
                 <input id={`lj-obs-${j.id}`} placeholder="Como foi o gol / observação (opcional)" value={x.observacao} onChange={(e) => setP(j.id, { observacao: e.target.value })} aria-label={`Observação sobre ${j.nome}`} />
+                </>}
               </>
             )}
           </section>
@@ -551,15 +524,19 @@ export function LancarJogo() {
       })}
 
 
-      {time && (
+      <button type="button" className="btn btn-fantasma" aria-expanded={detalhes} onClick={() => setDetalhes(!detalhes)}>
+        {detalhes ? '− Menos detalhes' : '+ Mais detalhes (cartões, craque, escalação, resenha, local, escudos)'}
+      </button>
+
+      {detalhes && time && (
         <EditorEscalacao modalidade={time.modalidade} valor={escalacao} onChange={setEscalacao}
           colegas={d.colegas.filter((c) => c.time_id === timeId)} />
       )}
 
-      <label className="campo">
+      {detalhes && <label className="campo">
         📝 Resenha do jogo (opcional)
         <textarea id="lj-resumo" rows={4} placeholder="Conte como foi: o clima, os lances, como saíram os gols, os destaques…" value={resumo} onChange={(e) => setResumo(e.target.value)} />
-      </label>
+      </label>}
 
       {time?.tipo === 'tecnico' && (
         <p className="aviso">Se o técnico lançar este mesmo jogo, a versão dele passa a valer como oficial e você recebe um aviso das diferenças.</p>
