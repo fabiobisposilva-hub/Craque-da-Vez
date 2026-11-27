@@ -4,6 +4,7 @@ import { Menu } from './components/Menu';
 import { supabase } from './lib/supabase';
 import { Admin } from './pages/Admin';
 import { Privacidade, Termos } from './pages/Legal';
+import { Instalar } from './pages/Instalar';
 import { PapelDeParede } from './components/PapelDeParede';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configurado } from './lib/supabase';
@@ -49,6 +50,7 @@ function Rotas() {
         <Route path="/criar-conta" element={<CriarConta />} />
         <Route path="/termos" element={<Termos />} />
         <Route path="/privacidade" element={<Privacidade />} />
+        <Route path="/instalar" element={<Instalar />} />
         <Route path="*" element={<Entrar />} />
       </Routes>
     );
@@ -75,6 +77,7 @@ function Rotas() {
       <Route path="/nova-senha" element={<NovaSenha />} />
       <Route path="/termos" element={<Termos />} />
       <Route path="/privacidade" element={<Privacidade />} />
+      <Route path="/instalar" element={<Instalar />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </>

@@ -113,6 +113,8 @@ export function Rodape() {
         <a href="/termos">Termos de Uso</a>
         <span aria-hidden="true">·</span>
         <a href="/privacidade">Política de Privacidade</a>
+        <span aria-hidden="true">·</span>
+        <a href="/instalar">Como instalar</a>
       </p>
       <p className="rodape-versao">Versão 1.0</p>
     </footer>
