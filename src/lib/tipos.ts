@@ -165,3 +165,10 @@ export function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/);
   return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
 }
+
+export const PARENTESCOS: [string, string][] = [
+  ['pai', 'Pai'], ['mae', 'Mãe'], ['avo_m', 'Avô'], ['avo_f', 'Avó'], ['tio', 'Tio'], ['tia', 'Tia'],
+  ['padrinho', 'Padrinho'], ['madrinha', 'Madrinha'], ['irmao', 'Irmão'], ['irma', 'Irmã'], ['primo', 'Primo'], ['prima', 'Prima'],
+  ['padrasto', 'Padrasto'], ['madrasta', 'Madrasta'], ['tecnico', 'Técnico'], ['amigo', 'Amigo(a)'], ['outro', 'Outro'],
+];
+export const nomeParentesco = (p: string | null | undefined) => PARENTESCOS.find(([k]) => k === p)?.[1] ?? 'Não informado';

@@ -277,3 +277,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .passos li::before { content: counter(passo); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; display: grid; place-items: center; }
 .passos small { display: block; color: var(--text-muted); font-size: 12px; margin-top: 2px; }
 .endereco { display: inline-block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 8px; font-weight: 700; user-select: all; }
+.membro { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); }
+.membro.bloqueado { opacity: 0.6; }
+.membro .chip { min-height: 34px; padding: 0 10px; font-size: 12px; }

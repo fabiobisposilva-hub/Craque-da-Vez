@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from '../components/Comuns';
 import { enviarFotoJogador } from '../lib/imagens';
 import { SalaTrofeus } from '../components/SalaTrofeus';
+import { Familia } from '../components/Familia';
 import { atualizarPapelDeParede, destacarJogador } from '../components/PapelDeParede';
 import { categoriaNatural, categoriasDaCarreira } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
@@ -278,7 +279,7 @@ export function PerfilJogador() {
       )}
 
       {editor && <ColocarEmTime jogadorId={jogador.id} nascimento={jogador.data_nascimento} jaEsta={vinculos.map((v) => v.time_id)} times={d.times} onMudou={d.recarregar} />}
-      {editor && <Responsaveis jogadorId={jogador.id} nome={jogador.apelido || jogador.nome.split(' ')[0]} />}
+      {editor && <Familia jogadorId={jogador.id} nome={jogador.apelido || jogador.nome.split(' ')[0]} />}
     </main>
   );
 }
@@ -371,71 +372,6 @@ function ColocarEmTime({ jogadorId, nascimento, jaEsta, times, onMudou }: { joga
       )}
       <button type="button" className="link" onClick={() => setAberto(false)}>Cancelar</button>
     </form>
-  );
-}
-
-function Responsaveis({ jogadorId, nome }: { jogadorId: string; nome: string }) {
-  const [lista, setLista] = useState<{ usuario_id: string; papel: string }[]>([]);
-  const [convite, setConvite] = useState<{ codigo: string; papel: 'responsavel' | 'leitor' } | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.from('jogador_responsaveis').select('usuario_id, papel').eq('jogador_id', jogadorId).eq('status', 'ativo')
-      .then(({ data }) => setLista(data ?? []));
-  }, [jogadorId]);
-  const editores = lista.filter((l) => l.papel !== 'leitor').length;
-  const leitores = lista.length - editores;
-
-  async function convidar(papel: 'responsavel' | 'leitor') {
-    setErro(null);
-    setAviso(null);
-    const { data, error } = await supabase.from('convites_responsavel').insert({ jogador_id: jogadorId, papel }).select('codigo').single();
-    if (error) setErro(/papel/.test(error.message) ? 'Falta rodar o SQL novo no Supabase para liberar o convite só para ver.' : mensagemDeErro(error));
-    else setConvite({ codigo: data.codigo, papel });
-  }
-
-  const mensagem = convite
-    ? `Oi! Te convidei para ${convite.papel === 'leitor' ? `acompanhar o ${nome}` : `cuidar junto comigo do ${nome}`} no Craque da Vez ⚽\n\n` +
-      `1. Abra ${location.origin}\n2. Toque em "Criar conta" (só maiores de 18)\n3. Em Perfil → Código de convite, digite: ${convite.codigo}\n\nO código vale por 7 dias.`
-    : '';
-
-  async function compartilhar() {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Craque da Vez', text: mensagem });
-        return;
-      }
-      await navigator.clipboard.writeText(mensagem);
-      setAviso('Mensagem copiada. Cole no WhatsApp para enviar.');
-    } catch {
-      setAviso('Copie a mensagem abaixo e envie pelo WhatsApp.');
-    }
-  }
-
-  return (
-    <section className="cartao pilha">
-      <h3>Família</h3>
-      <p className="muted small">
-        <b style={{ color: 'var(--text)' }}>Responsáveis</b> podem lançar jogos e alterar o jogador (até 4, você incluído: {editores} de 4).{' '}
-        <b style={{ color: 'var(--text)' }}>Só para ver</b>: avós, tios e amigos acompanham tudo, mas não alteram nada ({leitores} hoje).
-      </p>
-      {convite ? (
-        <div className="pilha">
-          <p className="selo">{convite.papel === 'leitor' ? 'Convite só para ver' : 'Convite de responsável'}</p>
-          <b className="num" style={{ fontSize: 26, letterSpacing: '0.12em' }}>{convite.codigo}</b>
-          <button className="btn btn-primario" onClick={compartilhar}>Enviar convite pelo WhatsApp</button>
-          <textarea id="msg-convite" readOnly value={mensagem} rows={6} onFocus={(e) => e.currentTarget.select()} aria-label="Mensagem do convite" />
-          {aviso && <p className="muted small">{aviso}</p>}
-          <button className="link" style={{ alignSelf: 'flex-start' }} onClick={() => setConvite(null)}>Fazer outro convite</button>
-        </div>
-      ) : (
-        <div className="grade-2">
-          <button className="btn btn-fantasma" onClick={() => convidar('leitor')}>👀 Convidar só para ver</button>
-          <button className="btn btn-fantasma" onClick={() => convidar('responsavel')} disabled={editores >= 4}>✏️ Convidar responsável</button>
-        </div>
-      )}
-      <Erro msg={erro} />
-    </section>
   );
 }
 

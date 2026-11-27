@@ -7,7 +7,7 @@ set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
 insert into convites_responsavel (codigo, jogador_id, papel) values ('VOVO0001','10000000-0000-0000-0000-000000000001','leitor');
 
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000b0';
-select aceitar_convite('VOVO0001') is not null as vovo_entrou;
+select aceitar_convite('VOVO0001','avo_f') is not null as vovo_entrou;
 select count(*) = 1 as vovo_ve_miguel from jogadores where nome = 'Miguel';
 select count(*) >= 1 as vovo_ve_jogos from jogos;
 select count(*) >= 1 as vovo_ve_participacoes from jogo_participacoes;

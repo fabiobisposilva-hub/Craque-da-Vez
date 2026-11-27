@@ -45,7 +45,7 @@ insert into convites_responsavel (codigo, jogador_id) values ('ABC12345','100000
 -- Ana não vê o Miguel antes do convite
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
 select count(*) = 0 as ana_nao_ve from jogadores;
-select aceitar_convite('abc12345') is not null as ana_aceitou;
+select aceitar_convite('abc12345','mae') is not null as ana_aceitou;
 select count(*) = 1 as ana_ve, (select count(*) from jogos) = 1 as ana_ve_jogo from jogadores;
 
 -- Técnico: time da Magnus (futsal), convida Miguel; responsável aprova
