@@ -13,6 +13,12 @@ Lista do que foi pedido: o que falta e o que já foi feito. Atualizada em 27/11/
 - Na tela do time, cada linha de "Últimos jogos do time" hoje mostra só a letra V/E/D e o nome do adversário.
 - Passar a mostrar **os dois escudos** (nosso time × adversário) com o placar, igual à lista de jogos do atleta (item 6), mantendo a cor de V/E/D.
 
+### 14. Foto do atleta no topo da tela do jogador (print de 27/11, atleta Rafinha)
+- A foto redonda não preenche o círculo todo: sobra **borda/espaço sem foto** (aparece um pedaço vazio e um selo cortado no canto de baixo).
+- Fazer a foto **preencher o círculo inteiro** (cortar o excesso, sem esticar) e **centralizar melhor** o rosto.
+- Ao escolher a foto, deixar a pessoa **ajustar o enquadramento** (arrastar e aproximar) antes de salvar, para o rosto ficar no meio.
+- Conferir também a foto da capa e os avatares menores (Início, Elenco, Família) com a mesma regra.
+
 ## Ainda falta (depende de serviço pago / e-mail próprio)
 
 ### 10. Confirmar o e-mail com código
