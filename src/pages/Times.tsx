@@ -4,11 +4,13 @@ import { Avatar, dataCurta, Erro, Escudo, EscolherImagem, Resultado, Topo } from
 import { enviarEscudo } from '../lib/imagens';
 import { salvarEscudoTime } from '../lib/escudos';
 import { SalaTrofeus } from '../components/SalaTrofeus';
+import { EscolherJogador, FaixaJogador } from '../components/JogadorAtivo';
+import { lerJogadorAtivo, useJogadorAtivo } from '../lib/ativo';
 import { categoriaNatural, categoriasDaCarreira, todasCategorias } from '../lib/categorias';
 import { podeEditar, useDados } from '../lib/dados';
 import { golsDoJogador } from '../lib/estatisticas';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
+import { ehOficial, POSICOES, SITUACOES, type Campeonato, type Colega, type Time } from '../lib/tipos';
 
 const CORES = ['#E8000B', '#FFFFFF', '#1E6BFF', '#2FBF71', '#FFC928', '#111111', '#7A3CFF', '#FF7A00'];
 
@@ -19,19 +21,28 @@ function EscudoTime({ t }: { t: Pick<Time, 'nome' | 'cor' | 'escudo_url'> }) {
 export function Times() {
   const d = useDados();
   const [entrando, setEntrando] = useState(false);
+  const meusJogadores = d.jogadores.filter((j) => d.papeis[j.id]);
+  const [ativoId, setAtivo] = useJogadorAtivo(meusJogadores.map((j) => j.id));
+  const ativo = meusJogadores.find((j) => j.id === ativoId);
+  // Times do jogador escolhido + times que eu administro (técnico)
+  const doAtivo = new Set(ativo ? d.vinculos.filter((v) => v.jogador_id === ativo.id).map((v) => v.time_id) : []);
+  const times = d.times.filter((t) => doAtivo.has(t.id) || (t.dono_id === d.meuId && (!ativo || t.tipo === 'tecnico')));
+  const precisaEscolher = !d.carregando && !ativo && meusJogadores.length > 1;
   return (
     <main className="tela">
       <Topo titulo="Times" voltar={false}>
         <Link to="/times/novo" className="btn btn-primario btn-pequeno">+ Novo time</Link>
       </Topo>
-      {!d.carregando && d.times.length === 0 && (
+      {ativo && <FaixaJogador jogador={ativo} jogadores={meusJogadores} onTrocar={setAtivo} />}
+      {precisaEscolher && <EscolherJogador jogadores={meusJogadores} onEscolher={setAtivo} titulo="os times" />}
+      {!d.carregando && !precisaEscolher && times.length === 0 && (
         <div className="vazio">
           <div className="bola" aria-hidden="true">🛡️</div>
           <h3>Nenhum time ainda</h3>
           <p className="muted small">Crie o time da família ou, se você é técnico, o time com as categorias. Para entrar no time de um técnico, use o código que ele passar.</p>
         </div>
       )}
-      {d.times.map((t) => {
+      {!precisaEscolher && times.map((t) => {
         const elenco = d.vinculos.filter((v) => v.time_id === t.id && v.status === 'ativo').length;
         const jogos = d.jogos.filter((j) => j.time_id === t.id && !j.substituido_por).length;
         return (
@@ -100,6 +111,8 @@ export function NovoTime() {
       const r = await supabase.from('time_categorias').insert(cats.map((c) => ({ time_id: data.id, categoria: c })));
       if (r.error) return setErro(mensagemDeErro(r.error));
     }
+    const ativo = lerJogadorAtivo();
+    if (ativo && f.tipo === 'particular') await supabase.from('jogador_times').insert({ jogador_id: ativo, time_id: data.id });
     nav(`/times/${data.id}`, { replace: true });
   }
 
@@ -191,7 +204,7 @@ export function TimeDetalhe() {
 
   // Estatística do time (artilharia, garçons, cartões)
   const ranking = new Map<string, { nome: string; gols: number; assist: number; cartoes: number; jogos: number }>();
-  for (const g of jogos) {
+  for (const g of jogos.filter(ehOficial)) {
     for (const p of d.participacoes.filter((p) => p.jogo_id === g.id)) {
       const j = d.jogadores.find((x) => x.id === p.jogador_id);
       if (!j) continue;
@@ -201,8 +214,9 @@ export function TimeDetalhe() {
     }
   }
   const linhasRanking = [...ranking.values()].sort((a, b) => b.gols - a.gols || b.assist - a.assist);
-  const v = jogos.filter((j) => j.resultado === 'V').length, e = jogos.filter((j) => j.resultado === 'E').length;
-  const aproveitamento = jogos.length ? Math.round(((v * 3 + e) / (jogos.length * 3)) * 100) : 0;
+  const oficiais = jogos.filter(ehOficial);
+  const v = oficiais.filter((j) => j.resultado === 'V').length, e = oficiais.filter((j) => j.resultado === 'E').length;
+  const aproveitamento = oficiais.length ? Math.round(((v * 3 + e) / (oficiais.length * 3)) * 100) : 0;
 
   return (
     <main className="tela">
@@ -234,9 +248,9 @@ export function TimeDetalhe() {
       )}
 
       <div className="numeros">
-        <div className="numero"><b>{jogos.length}</b><span>Jogos</span></div>
-        <div className="numero"><b>{jogos.reduce((s, j) => s + j.gols_pro, 0)}</b><span>Gols pró</span></div>
-        <div className="numero"><b>{jogos.reduce((s, j) => s + j.gols_contra, 0)}</b><span>Contra</span></div>
+        <div className="numero"><b>{oficiais.length}</b><span>Jogos</span></div>
+        <div className="numero"><b>{oficiais.reduce((s, j) => s + j.gols_pro, 0)}</b><span>Gols pró</span></div>
+        <div className="numero"><b>{oficiais.reduce((s, j) => s + j.gols_contra, 0)}</b><span>Contra</span></div>
         <div className="numero"><b>{aproveitamento}%</b><span>Aprov.</span></div>
       </div>
 

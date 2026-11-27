@@ -15,11 +15,15 @@ export function Conta() {
   const [parentesco, setParentesco] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [admin, setAdmin] = useState(false);
+  const [pendentes, setPendentes] = useState(0);
   const d = useDados();
   const meus = d.jogadores.filter((j) => podeEditar(d, j.id));
   const [aberto, setAberto] = useState<string | null>(null);
   useEffect(() => {
-    supabase.rpc('eh_admin').then(({ data }) => setAdmin(data === true));
+    supabase.rpc('eh_admin').then(({ data }) => {
+      setAdmin(data === true);
+      if (data === true) supabase.rpc('contar_pendentes').then(({ data: n }) => setPendentes(Number(n) || 0));
+    });
   }, []);
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export function Conta() {
       </section>
 
       {admin && (
-        <Link to="/admin" className="btn btn-primario">📊 Painel do administrador</Link>
+        <Link to="/admin" className="btn btn-primario">📊 Painel do administrador{pendentes > 0 && <span className="bolinha" aria-label={`${pendentes} aguardando liberação`}>{pendentes}</span>}</Link>
       )}
 
       {meus.length > 0 && (

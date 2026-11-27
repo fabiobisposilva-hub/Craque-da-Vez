@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Contador, Erro, Escudo, EscolherImagem, Topo } from '../components/Comuns';
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { EditorEscalacao } from '../components/Escalacao';
+import { EscolherJogador, FaixaJogador } from '../components/JogadorAtivo';
+import { useJogadorAtivo } from '../lib/ativo';
 import { EditorPenaltis, penaltisVazio, type DadosPenaltis } from '../components/Penaltis';
 import { categoriaNatural, categoriasElegiveis, podeJogar, resultado, temporadasDaCarreira, todasCategorias } from '../lib/categorias';
 import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
@@ -19,8 +21,17 @@ interface Part {
   titular: boolean;
   craque_do_jogo: boolean;
   observacao: string;
+  goleiro: boolean;
+  gols_sofridos: number | null;
+  defesas: number;
+  defesas_dificeis: number;
+  penaltis_defendidos: number;
+  relato_defesas: string;
 }
-const partVazia = (): Part => ({ jogou: true, gols: 0, assistencias: 0, amarelos: 0, vermelho: false, suspenso_proximo: false, titular: true, craque_do_jogo: false, observacao: '' });
+const partVazia = (): Part => ({ jogou: true, gols: 0, assistencias: 0, amarelos: 0, vermelho: false, suspenso_proximo: false, titular: true, craque_do_jogo: false, observacao: '',
+  goleiro: false, gols_sofridos: null, defesas: 0, defesas_dificeis: 0, penaltis_defendidos: 0, relato_defesas: '' });
+/** Campos do goleiro: gravados depois que o jogo é salvo. */
+const CAMPOS_GOLEIRO = ['goleiro', 'gols_sofridos', 'defesas', 'defesas_dificeis', 'penaltis_defendidos', 'relato_defesas'] as const;
 
 function paraCampoData(data: Date) {
   const d = new Date(data);
@@ -46,7 +57,7 @@ export function LancarJogo() {
   const [timeId, setTimeId] = useState('');
   const [catsDoTime, setCatsDoTime] = useState<string[]>([]);
   const [categoria, setCategoria] = useState('');
-  const [tipo, setTipo] = useState<'amistoso' | 'treino' | 'campeonato'>('amistoso');
+  const [tipo, setTipo] = useState<'amistoso' | 'treino' | 'pelada' | 'campeonato'>('amistoso');
   const [campId, setCampId] = useState('');
   const [novoCamp, setNovoCamp] = useState<string | null>(null);
   const [fase, setFase] = useState('');
@@ -70,7 +81,7 @@ export function LancarJogo() {
 
   // Começa no primeiro time disponível
   useEffect(() => {
-    if (!timeId && d.times.length) setTimeId(d.times[0].id);
+    if (!jogoId && timesDisponiveis.length && !timesDisponiveis.some((t) => t.id === timeId)) setTimeId(timesDisponiveis[0].id);
   }, [d.times, timeId]);
 
   useEffect(() => {
@@ -106,17 +117,26 @@ export function LancarJogo() {
     for (const v of d.vinculos.filter((v) => v.time_id === g.time_id)) {
       const x = doJogo.find((y) => y.jogador_id === v.jogador_id);
       novo[v.jogador_id] = x
-        ? { jogou: true, gols: x.gols, assistencias: x.assistencias, amarelos: x.amarelos, vermelho: x.vermelho, suspenso_proximo: x.suspenso_proximo, titular: x.titular, craque_do_jogo: x.craque_do_jogo, observacao: x.observacao ?? '' }
+        ? { jogou: true, gols: x.gols, assistencias: x.assistencias, amarelos: x.amarelos, vermelho: x.vermelho, suspenso_proximo: x.suspenso_proximo, titular: x.titular, craque_do_jogo: x.craque_do_jogo, observacao: x.observacao ?? '',
+            goleiro: !!x.goleiro, gols_sofridos: x.gols_sofridos ?? null, defesas: x.defesas ?? 0, defesas_dificeis: x.defesas_dificeis ?? 0, penaltis_defendidos: x.penaltis_defendidos ?? 0, relato_defesas: x.relato_defesas ?? '' }
         : { ...partVazia(), jogou: false };
     }
     setParts(novo);
     setCarregouEdicao(true);
   }, [jogoId, carregouEdicao, d.carregando, d.jogos, d.participacoes, d.vinculos]);
 
+  // Jogador escolhido: times dele (e os que eu administro como técnico)
+  const meusJogadores = d.jogadores.filter((j) => podeEditar(d, j.id));
+  const [ativoId, setAtivo] = useJogadorAtivo(meusJogadores.map((j) => j.id));
+  const ativo = meusJogadores.find((j) => j.id === ativoId);
+  const timesDisponiveis = d.times.filter((t) =>
+    (ativo && d.vinculos.some((v) => v.jogador_id === ativo.id && v.time_id === t.id && v.status === 'ativo')) || (t.dono_id === d.meuId && t.tipo === 'tecnico'));
   const elenco: Jogador[] = useMemo(() => {
     const ids = new Set(d.vinculos.filter((v) => v.time_id === timeId && v.status === 'ativo').map((v) => v.jogador_id));
     // Só os jogadores que eu posso lançar (família convidada só para ver fica de fora)
-    return d.jogadores.filter((j) => ids.has(j.id) && (podeEditar(d, j.id) || time?.dono_id === d.meuId));
+    // No time do técnico, ele lança todo o elenco; nos outros, só o jogador escolhido
+    if (time?.dono_id === d.meuId && time.tipo === 'tecnico') return d.jogadores.filter((j) => ids.has(j.id));
+    return d.jogadores.filter((j) => ids.has(j.id) && j.id === ativo?.id);
   }, [d, timeId, time]);
 
   // Categorias oferecidas: as do time do técnico, ou as que o elenco pode jogar
@@ -135,8 +155,9 @@ export function LancarJogo() {
   // Na escalação só aparecem os elegíveis para a categoria do jogo
   const elegiveis = elenco.filter((j) => podeJogar(j.data_nascimento, categoria, temporada));
   const campsDoTime = d.campeonatos.filter((c) => c.time_id === timeId);
-  const p = (id: string) => parts[id] ?? partVazia();
-  const setP = (id: string, mud: Partial<Part>) => setParts((ps) => ({ ...ps, [id]: { ...(ps[id] ?? partVazia()), ...mud } }));
+  const padrao = (id: string): Part => ({ ...partVazia(), goleiro: d.jogadores.find((j) => j.id === id)?.funcao === 'goleiro' });
+  const p = (id: string) => parts[id] ?? padrao(id);
+  const setP = (id: string, mud: Partial<Part>) => setParts((ps) => ({ ...ps, [id]: { ...(ps[id] ?? padrao(id)), ...mud } }));
 
   // Modo ao vivo: placar e números saem dos eventos
   function registrar(ev: Evento) {
@@ -188,7 +209,7 @@ export function LancarJogo() {
         campeonato_id, fase: tipo === 'campeonato' ? fase : '', local, casa_fora: casaFora, gols_pro: golsPro, gols_contra: golsContra, ao_vivo: aoVivo,
       };
       const participacoes = elegiveis.filter((j) => p(j.id).jogou).map((j) => {
-        const { jogou: _jogou, ...resto } = p(j.id);
+        const { jogou: _jogou, goleiro: _g, gols_sofridos: _gs, defesas: _d, defesas_dificeis: _dd, penaltis_defendidos: _pd, relato_defesas: _r, ...resto } = p(j.id);
         return { jogador_id: j.id, ...resto };
       });
       let idSalvo: string;
@@ -201,6 +222,15 @@ export function LancarJogo() {
         if (error) throw error;
         idSalvo = novoId as string;
         if (resumo.trim()) await supabase.from('jogos').update({ resumo: resumo.trim() }).eq('id', idSalvo);
+      }
+      // Números do goleiro
+      for (const j of elegiveis.filter((x) => p(x.id).jogou && (p(x.id).goleiro || jogoId))) {
+        const x = p(j.id);
+        const dados: Record<string, unknown> = {};
+        for (const c of CAMPOS_GOLEIRO) dados[c] = x[c];
+        if (x.goleiro && x.gols_sofridos == null) dados.gols_sofridos = golsContra;
+        dados.relato_defesas = x.relato_defesas.trim() || null;
+        await supabase.from('jogo_participacoes').update(dados).match({ jogo_id: idSalvo, jogador_id: j.id });
       }
       await salvarEscalacao(idSalvo);
       nav(`/jogo/${idSalvo}`, { replace: true });
@@ -249,7 +279,14 @@ export function LancarJogo() {
   }
 
   if (d.carregando || (jogoId && !carregouEdicao)) return <main className="tela" aria-busy="true" />;
-  if (!d.times.length)
+  if (!jogoId && !ativo && meusJogadores.length > 1)
+    return (
+      <main className="tela">
+        <Topo titulo="Lançar jogo" voltar={false} />
+        <EscolherJogador jogadores={meusJogadores} onEscolher={setAtivo} titulo="lançar o jogo" />
+      </main>
+    );
+  if (!jogoId && !timesDisponiveis.length)
     return (
       <main className="tela">
         <Topo titulo="Lançar jogo" voltar={false} />
@@ -306,11 +343,12 @@ export function LancarJogo() {
   return (
     <main className="tela">
       <Topo titulo={jogoId ? 'Editar jogo' : 'Lançar jogo'} voltar={!!jogoId} />
+      {!jogoId && ativo && <FaixaJogador jogador={ativo} jogadores={meusJogadores} onTrocar={setAtivo} />}
 
       <label className="campo">
         Nosso time
         <select id="lj-time" value={timeId} onChange={(e) => { setTimeId(e.target.value); setParts({}); }}>
-          {d.times.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          {(jogoId ? d.times : timesDisponiveis).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </label>
       {time && detalhes && (
@@ -372,7 +410,7 @@ export function LancarJogo() {
       <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="selo" style={{ marginBottom: 8 }}>Tipo</legend>
         <div className="chips">
-          {([['amistoso', 'Amistoso'], ['treino', 'Treino / coletivo'], ['campeonato', 'Campeonato']] as const).map(([k, v]) => (
+          {([['campeonato', 'Campeonato'], ['amistoso', 'Amistoso'], ['treino', 'Treino'], ['pelada', 'Pelada']] as const).map(([k, v]) => (
             <button key={k} type="button" className="chip" aria-pressed={tipo === k} onClick={() => setTipo(k)}>{v}</button>
           ))}
         </div>
@@ -502,6 +540,19 @@ export function LancarJogo() {
             {x.jogou && (
               <>
                 <div className="linha"><span className="cresce">Gols</span><Contador valor={x.gols} onChange={(n) => { setP(j.id, { gols: n }); const outros = elegiveis.reduce((t, o) => t + (o.id !== j.id && p(o.id).jogou ? p(o.id).gols : 0), 0); if (outros + n > golsPro) setGolsPro(outros + n); }} rotulo={`gols de ${j.nome}`} /></div>
+                <label className="toggle" style={{ minHeight: 40 }}>
+                  <span>🧤 Jogou no gol</span>
+                  <input type="checkbox" id={`lj-gol-${j.id}`} checked={x.goleiro} onChange={(e) => setP(j.id, { goleiro: e.target.checked })} />
+                </label>
+                {x.goleiro && (
+                  <div className="quadro-goleiro pilha">
+                    <div className="linha"><span className="cresce">Gols sofridos</span><Contador valor={x.gols_sofridos ?? golsContra} onChange={(n) => setP(j.id, { gols_sofridos: n })} rotulo={`gols sofridos por ${j.nome}`} /></div>
+                    <div className="linha"><span className="cresce">Defesas</span><Contador valor={x.defesas} onChange={(n) => setP(j.id, { defesas: n })} rotulo={`defesas de ${j.nome}`} /></div>
+                    <div className="linha"><span className="cresce">⭐ Defesas difíceis</span><Contador valor={x.defesas_dificeis} onChange={(n) => setP(j.id, { defesas_dificeis: n })} rotulo={`defesas difíceis de ${j.nome}`} /></div>
+                    <div className="linha"><span className="cresce">🥅 Pênaltis defendidos (no jogo)</span><Contador valor={x.penaltis_defendidos} onChange={(n) => setP(j.id, { penaltis_defendidos: n })} rotulo={`pênaltis defendidos por ${j.nome}`} /></div>
+                    <textarea id={`lj-relato-${j.id}`} rows={2} placeholder="Conte as defesas difíceis (opcional)" value={x.relato_defesas} onChange={(e) => setP(j.id, { relato_defesas: e.target.value })} aria-label="Relato das defesas" />
+                  </div>
+                )}
                 <div className="linha"><span className="cresce">Assistências</span><Contador valor={x.assistencias} onChange={(n) => setP(j.id, { assistencias: n })} rotulo={`assistências de ${j.nome}`} /></div>
                 {detalhes && <>
                 <div className="linha"><span className="cresce"><i className="cartao-ico am" /> Amarelos</span><Contador valor={x.amarelos} max={2} onChange={(n) => setP(j.id, { amarelos: n })} rotulo={`amarelos de ${j.nome}`} /></div>

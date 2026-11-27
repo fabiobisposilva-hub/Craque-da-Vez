@@ -1,5 +1,5 @@
 import { jogouAcima } from './categorias';
-import type { Jogo, Participacao } from './tipos';
+import { ehOficial, type Jogo, type Participacao } from './tipos';
 
 export interface Linha {
   jogo: Jogo;
@@ -22,6 +22,10 @@ export interface Resumo {
   golsPenaltis: number;
   acima: { gols: number; jogos: number; categorias: string[] };
   porMes: { mes: string; gols: number }[];
+  /** Treinos e peladas: contados à parte, fora dos números oficiais. */
+  extras: { jogos: number; gols: number; assistencias: number };
+  /** Números de goleiro (jogos em que ele jogou no gol). */
+  goleiro: { jogos: number; golsSofridos: number; media: number; semSofrer: number; defesas: number; mediaDefesas: number; dificeis: number; penaltisDefendidos: number; vitorias: number };
 }
 
 /** Junta jogos e participações de um jogador, ignorando os substituídos pela versão do técnico e os futuros. */
@@ -45,7 +49,36 @@ export function golsDoJogador(jogo: Pick<Jogo, 'cobrancas' | 'penaltis'>, part: 
   return part.gols + golsNaDisputa(jogo, part.jogador_id);
 }
 
-export function resumir(linhas: Linha[], nascimento: string): Resumo {
+/** Defesas de pênalti na disputa: cobranças do adversário defendidas com este atleta no gol. */
+export function defesasNaDisputa(jogo: Pick<Jogo, 'cobrancas' | 'penaltis' | 'goleiro_penaltis'>, nomes: string[]): number {
+  if (!jogo.penaltis || !jogo.goleiro_penaltis) return 0;
+  const g = jogo.goleiro_penaltis.trim().toLowerCase();
+  if (!nomes.some((n) => n && n.trim().toLowerCase() === g)) return 0;
+  return (jogo.cobrancas ?? []).filter((c) => c.lado === 'eles' && c.resultado === 'defendido').length;
+}
+
+export function resumir(todas: Linha[], nascimento: string, nomesGoleiro: string[] = []): Resumo {
+  const linhas = todas.filter((l) => ehOficial(l.jogo));
+  const extrasL = todas.filter((l) => !ehOficial(l.jogo));
+  const extras = {
+    jogos: extrasL.length,
+    gols: extrasL.reduce((t, l) => t + golsDoJogador(l.jogo, l.part), 0),
+    assistencias: extrasL.reduce((t, l) => t + l.part.assistencias, 0),
+  };
+  const gl = linhas.filter((l) => l.part.goleiro);
+  const golsSofridos = gl.reduce((t, l) => t + (l.part.gols_sofridos ?? l.jogo.gols_contra), 0);
+  const defesasG = gl.reduce((t, l) => t + (l.part.defesas ?? 0), 0);
+  const goleiro = {
+    jogos: gl.length,
+    golsSofridos,
+    media: gl.length ? golsSofridos / gl.length : 0,
+    semSofrer: gl.filter((l) => (l.part.gols_sofridos ?? l.jogo.gols_contra) === 0).length,
+    defesas: defesasG,
+    mediaDefesas: gl.length ? defesasG / gl.length : 0,
+    dificeis: gl.reduce((t, l) => t + (l.part.defesas_dificeis ?? 0), 0),
+    penaltisDefendidos: gl.reduce((t, l) => t + (l.part.penaltis_defendidos ?? 0), 0) + linhas.reduce((t, l) => t + defesasNaDisputa(l.jogo, nomesGoleiro), 0),
+    vitorias: gl.filter((l) => l.jogo.resultado === 'V').length,
+  };
   let gols = 0, golsPenaltis = 0, assistencias = 0, cartoes = 0, v = 0, e = 0, d = 0, seq = 0, maiorSequencia = 0, craque = 0;
   const acima = { gols: 0, jogos: 0, categorias: new Set<string>() };
   const meses = new Map<string, number>();
@@ -87,5 +120,7 @@ export function resumir(linhas: Linha[], nascimento: string): Resumo {
     golsPenaltis,
     acima: { ...acima, categorias: [...acima.categorias].sort() },
     porMes: [...meses].map(([mes, g]) => ({ mes, gols: g })),
+    extras,
+    goleiro,
   };
 }

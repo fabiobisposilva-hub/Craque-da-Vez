@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, Erro, EscolherImagem, Escudo, Rodape } from '../components/Comuns';
+import { Avatar, Escudo, Rodape } from '../components/Comuns';
 import { dataDoJogo, ehFuturo } from '../components/Confronto';
 import { Logo } from '../components/Logo';
 import { categoriaNatural, idadeEmAnos } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
-import { definirPapel } from '../lib/papel';
-import { mensagemDeErro, supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { type Notificacao } from '../lib/tipos';
 
 function textoNotificacao(n: Notificacao): string {
@@ -22,8 +21,6 @@ function textoNotificacao(n: Notificacao): string {
 export function Inicio() {
   const d = useDados();
   const [notas, setNotas] = useState<Notificacao[]>([]);
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
   const [autorizados, setAutorizados] = useState<Set<string> | null>(null);
   useEffect(() => {
     supabase.from('consentimentos').select('jogador_id').eq('tipo', 'tratamento_dados_menor').is('revogado_em', null)
@@ -38,18 +35,11 @@ export function Inicio() {
     await supabase.from('notificacoes').update({ lida: true }).in('id', notas.map((n) => n.id));
     setNotas([]);
   }
-  async function trocarPapel(f: File) {
-    setEnviando(true); setErro(null);
-    try { await definirPapel('inicio', f); } catch (e) { setErro(mensagemDeErro(e)); } finally { setEnviando(false); }
-  }
 
   return (
     <main className="tela">
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <EscolherImagem id="papel-inicio" desativado={enviando} onArquivo={trocarPapel}>{enviando ? 'Enviando…' : '🖼️ Papel de parede'}</EscolherImagem>
-      </div>
+      <div className="marca-dagua" aria-hidden="true" />
       <Logo />
-      <Erro msg={erro} />
 
       {notas.length > 0 && (
         <section className="cartao pilha" aria-label="Novidades">
@@ -80,7 +70,8 @@ export function Inicio() {
 
       <div className="pilha" style={{ gap: 14 }}>
         {d.jogadores.map((j) => {
-          const r = resumir(linhasDoJogador(d.jogos, d.participacoes, j.id), j.data_nascimento);
+          const r = resumir(linhasDoJogador(d.jogos, d.participacoes, j.id), j.data_nascimento, [j.apelido, j.nome, j.nome.split(' ')[0]]);
+          const gol = j.funcao === 'goleiro';
           const times = d.vinculos.filter((v) => v.jogador_id === j.id && v.status === 'ativo').map((v) => d.times.find((t) => t.id === v.time_id)).filter((t): t is NonNullable<typeof t> => !!t);
           const ids = new Set(times.map((t) => t.id));
           const proximo = d.jogos.filter((g) => ids.has(g.time_id) && !g.substituido_por && ehFuturo(g)).sort((a, b) => a.data_hora.localeCompare(b.data_hora))[0];
@@ -99,8 +90,17 @@ export function Inicio() {
               </div>
               <div className="mini-numeros">
                 <span><b className="num">{r.jogos}</b> jogos</span>
-                <span><b className="num">{r.gols}</b> gols</span>
-                <span><b className="num">{r.assistencias}</b> assist.</span>
+                {gol ? (
+                  <>
+                    <span><b className="num">{r.goleiro.defesas}</b> defesas</span>
+                    <span><b className="num">{r.goleiro.golsSofridos}</b> gols sofridos</span>
+                  </>
+                ) : (
+                  <>
+                    <span><b className="num">{r.gols}</b> gols</span>
+                    <span><b className="num">{r.assistencias}</b> assist.</span>
+                  </>
+                )}
               </div>
               {proximo && <p className="proximo-mini">📅 Próximo: {dataDoJogo(proximo.data_hora)} · vs {proximo.adversario}</p>}
             </Link>

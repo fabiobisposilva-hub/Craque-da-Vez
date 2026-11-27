@@ -85,7 +85,7 @@ export function dataCurta(iso: string) {
 
 /** Etiqueta do tipo de jogo: campeonato (com nome e fase), amistoso ou treino. */
 export function TipoJogo({ jogo, campeonato }: {
-  jogo: { tipo: 'amistoso' | 'treino' | 'campeonato'; fase: string | null };
+  jogo: { tipo: 'amistoso' | 'treino' | 'pelada' | 'campeonato'; fase: string | null };
   campeonato?: { nome: string } | null;
 }) {
   const fases: Record<string, string> = { grupos: 'Grupos', oitavas: 'Oitavas', quartas: 'Quartas', semifinal: 'Semifinal', final: 'Final' };
@@ -96,6 +96,7 @@ export function TipoJogo({ jogo, campeonato }: {
       </span>
     );
   if (jogo.tipo === 'treino') return <span className="tipo-jogo tipo-treino">⚽ Treino</span>;
+  if (jogo.tipo === 'pelada') return <span className="tipo-jogo tipo-treino">🏃 Pelada</span>;
   return <span className="tipo-jogo tipo-amistoso">🤝 Amistoso</span>;
 }
 
@@ -106,8 +107,7 @@ export function Rodape() {
     <footer className="rodape">
       <p className="rodape-marca">Craque da Vez <span>· Hoje o destaque é você</span></p>
       <p>Desenvolvido por <b>Miguel</b> e <b>Fábio Bispo</b></p>
-      <p>Criado em 2026</p>
-      <p>Contato: <a className="rodape-zap" href="https://wa.me/5561992195242" target="_blank" rel="noopener noreferrer">WhatsApp (61) 99219-5242</a></p>
+      <p><a className="rodape-zap" href="https://wa.me/5561992195242" target="_blank" rel="noopener noreferrer">💬 Fale conosco no WhatsApp</a></p>
       <p>© {ano === 2026 ? '2026' : `2026–${ano}`} Craque da Vez. Todos os direitos reservados.</p>
       <p className="rodape-links">
         <a href="/termos">Termos de Uso</a>

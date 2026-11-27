@@ -26,20 +26,79 @@ function quando(iso: string | null) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-/** Painel do administrador: quantas pessoas usam o app. Só o administrador vê. */
+type Pessoa = {
+  id: string; nome: string; email: string; telefone: string | null; criado_em: string; visto_em: string | null;
+  aprovacao: 'pendente' | 'liberado' | 'recusado'; email_confirmado: boolean;
+  cadastrou: { apelido: string; nome: string; categoria: string; times: string | null }[];
+  convidado_em: { apelido: string; parentesco: string | null; papel: string; status: string }[];
+};
+type Atleta = { apelido: string; nome: string; categoria: string; criado_em: string; cadastrado_por: string; jogos: number; ultimo_jogo: string | null };
+type Completo = { pessoas: Pessoa[]; atletas: Atleta[] };
+
+const CHAVE_VISTO = 'craque:admin-visto';
+const dia = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+const PAPEL: Record<string, string> = { responsavel: 'edita', leitor: 'só vê', titular: 'cadastrou' };
+
+function CartaoPessoa({ p, novo, onDefinir, ocupado }: { p: Pessoa; novo: boolean; onDefinir: (id: string, s: string) => void; ocupado: boolean }) {
+  return (
+    <div className="cartao pilha" style={{ gap: 6, borderColor: p.aprovacao === 'pendente' ? 'var(--accent)' : undefined }}>
+      <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+        <b className="cresce">{p.nome || '(sem nome)'}</b>
+        {novo && <span className="selo">🆕 novo</span>}
+        {p.aprovacao === 'pendente' && <span className="selo">⏳ aguardando</span>}
+        {p.aprovacao === 'recusado' && <span className="selo">⛔ recusado</span>}
+      </div>
+      <p className="small">✉️ {p.email} {p.email_confirmado ? '✅' : <span className="muted">(e-mail não confirmado)</span>}</p>
+      {p.telefone && <p className="small">📱 <a className="link" href={`https://wa.me/55${p.telefone.replace(/\D/g, '').replace(/^55/, '')}`} target="_blank" rel="noopener noreferrer">{p.telefone}</a></p>}
+      <p className="muted small">Entrou em {dia(p.criado_em)} · último uso: {quando(p.visto_em)}</p>
+      {p.cadastrou.length > 0 && <p className="small">⚽ Cadastrou: {p.cadastrou.map((a) => `${a.apelido} (${a.categoria}${a.times ? ` · ${a.times}` : ''})`).join('; ')}</p>}
+      {p.convidado_em.length > 0 && <p className="small">👥 Convidado em: {p.convidado_em.map((a) => `${a.apelido} (${a.parentesco ?? '—'}, ${PAPEL[a.papel] ?? a.papel}${a.status !== 'ativo' ? `, ${a.status}` : ''})`).join('; ')}</p>}
+      <div className="linha" style={{ gap: 8, flexWrap: 'wrap' }}>
+        {p.aprovacao !== 'liberado' && <button className="btn btn-primario btn-pequeno" disabled={ocupado} onClick={() => onDefinir(p.id, 'liberado')}>✅ Liberar</button>}
+        {p.aprovacao !== 'recusado' && <button className="btn btn-contorno btn-pequeno" disabled={ocupado} onClick={() => onDefinir(p.id, 'recusado')}>{p.aprovacao === 'liberado' ? '⛔ Bloquear conta' : '⛔ Recusar'}</button>}
+      </div>
+    </div>
+  );
+}
+
+/** Painel do administrador: quem usa o app, contas para liberar e atletas. Só o administrador vê. */
 export function Admin() {
   const [p, setP] = useState<Painel | null>(null);
+  const [c, setC] = useState<Completo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [aba, setAba] = useState<'aguardando' | 'pessoas' | 'atletas'>('aguardando');
+  const [busca, setBusca] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [vistoAntes] = useState(() => { try { return localStorage.getItem(CHAVE_VISTO); } catch { return null; } });
+  useEffect(() => { try { localStorage.setItem(CHAVE_VISTO, new Date().toISOString()); } catch { /* sem armazenamento */ } }, []);
+
   const carregar = useCallback(async () => {
-    const { data, error } = await supabase.rpc('painel_admin');
-    if (error) setErro(mensagemDeErro(error));
-    else setP(data as Painel);
+    const [a, b] = await Promise.all([supabase.rpc('painel_admin'), supabase.rpc('painel_admin_completo')]);
+    if (a.error || b.error) return setErro(mensagemDeErro(a.error ?? b.error));
+    setP(a.data as Painel);
+    setC(b.data as Completo);
   }, []);
   useEffect(() => {
     carregar();
     const t = setInterval(carregar, 60000);
     return () => clearInterval(t);
   }, [carregar]);
+
+  async function definir(id: string, status: string) {
+    if (status === 'recusado' && !confirm('Recusar/bloquear esta conta? A pessoa não consegue usar o app até você liberar.')) return;
+    setOcupado(true);
+    const { error } = await supabase.rpc('definir_aprovacao', { p_usuario: id, p_status: status });
+    if (error) setErro(mensagemDeErro(error));
+    await carregar();
+    setOcupado(false);
+  }
+
+  const novo = (x: Pessoa) => !!vistoAntes && x.criado_em > vistoAntes;
+  const q = busca.trim().toLowerCase();
+  const pessoas = (c?.pessoas ?? []).filter((x) => !q || [x.nome, x.email, x.telefone ?? '', ...x.cadastrou.map((a) => a.apelido)].join(' ').toLowerCase().includes(q));
+  const pendentes = (c?.pessoas ?? []).filter((x) => x.aprovacao === 'pendente');
+  const novos = (c?.pessoas ?? []).filter(novo);
+  const atletas = (c?.atletas ?? []).filter((x) => !q || [x.apelido, x.nome, x.cadastrado_por].join(' ').toLowerCase().includes(q));
 
   return (
     <main className="tela">
@@ -58,41 +117,48 @@ export function Admin() {
           <div className="numeros">
             <div className="numero"><b>{p.hoje}</b><span>Hoje</span></div>
             <div className="numero"><b>{p.ultimos_7_dias}</b><span>7 dias</span></div>
-            <div className="numero"><b>{p.ultimos_30_dias}</b><span>30 dias</span></div>
             <div className="numero"><b>{p.contas}</b><span>Contas</span></div>
+            <div className="numero"><b>{p.jogadores}</b><span>Atletas</span></div>
           </div>
-
-          <section className="cartao" style={{ overflowX: 'auto' }}>
-            <table className="tabela">
-              <tbody>
-                <tr><td>Contas novas nos últimos 7 dias</td><td className="n"><b>{p.contas_novas_7_dias}</b></td></tr>
-                <tr><td>Jogadores cadastrados</td><td className="n"><b>{p.jogadores}</b></td></tr>
-                <tr><td>Times</td><td className="n"><b>{p.times}</b></td></tr>
-                <tr><td>Jogos lançados</td><td className="n"><b>{p.jogos}</b></td></tr>
-                <tr><td>Jogos lançados nos últimos 7 dias</td><td className="n"><b>{p.jogos_7_dias}</b></td></tr>
-              </tbody>
-            </table>
-          </section>
-
-          <section className="cartao" style={{ overflowX: 'auto' }}>
-            <h3 style={{ marginBottom: 8 }}>Últimos cadastros</h3>
-            <table className="tabela">
-              <thead><tr><th>Nome</th><th className="n">Jog.</th><th className="n">Entrou</th><th className="n">Último uso</th></tr></thead>
-              <tbody>
-                {p.cadastros_recentes.map((c, i) => (
-                  <tr key={i}>
-                    <td>{c.nome}</td>
-                    <td className="n">{c.jogadores}</td>
-                    <td className="n">{new Date(c.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</td>
-                    <td className="n">{quando(c.visto_em)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-          <p className="muted small">Atualiza sozinho a cada minuto. Só a sua conta de administrador vê esta página; telefones e e-mails não aparecem aqui.</p>
         </>
       )}
+
+      {novos.length > 0 && (
+        <div className="aviso">🆕 <b>{novos.length} pessoa{novos.length > 1 ? 's' : ''} nova{novos.length > 1 ? 's' : ''}</b> desde a sua última visita: {novos.map((x) => x.nome).join(', ')}.</div>
+      )}
+
+      <div className="chips">
+        <button className="chip" aria-pressed={aba === 'aguardando'} onClick={() => setAba('aguardando')}>⏳ Aguardando ({pendentes.length})</button>
+        <button className="chip" aria-pressed={aba === 'pessoas'} onClick={() => setAba('pessoas')}>👥 Pessoas ({c?.pessoas.length ?? 0})</button>
+        <button className="chip" aria-pressed={aba === 'atletas'} onClick={() => setAba('atletas')}>⚽ Atletas ({c?.atletas.length ?? 0})</button>
+      </div>
+
+      {aba !== 'aguardando' && <input placeholder="Buscar por nome, e-mail, celular ou atleta" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar" />}
+
+      {aba === 'aguardando' && (pendentes.length === 0
+        ? <p className="muted small">Ninguém aguardando liberação. 👍</p>
+        : pendentes.map((x) => <CartaoPessoa key={x.id} p={x} novo={novo(x)} onDefinir={definir} ocupado={ocupado} />))}
+
+      {aba === 'pessoas' && pessoas.map((x) => <CartaoPessoa key={x.id} p={x} novo={novo(x)} onDefinir={definir} ocupado={ocupado} />)}
+
+      {aba === 'atletas' && (
+        <section className="cartao" style={{ overflowX: 'auto' }}>
+          <table className="tabela">
+            <thead><tr><th>Atleta</th><th>Cadastrou</th><th className="n">Jogos</th><th className="n">Último</th></tr></thead>
+            <tbody>
+              {atletas.map((a, i) => (
+                <tr key={i}>
+                  <td><b>{a.apelido}</b><br /><span className="muted small">{a.nome} · {a.categoria}</span></td>
+                  <td className="small">{a.cadastrado_por}<br /><span className="muted">{dia(a.criado_em)}</span></td>
+                  <td className="n">{a.jogos}</td>
+                  <td className="n">{a.ultimo_jogo ? dia(a.ultimo_jogo) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+      <p className="muted small">Atualiza sozinho a cada minuto. Só a sua conta de administrador vê esta página. Use estes dados só para suporte e segurança.</p>
     </main>
   );
 }

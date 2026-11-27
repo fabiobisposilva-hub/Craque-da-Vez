@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { linkDoPapel } from '../lib/papel';
 
-/** Qual papel de parede vale nesta tela: Início usa o da pessoa; a tela do jogador usa o que ela escolheu para ele. */
+/** O papel de parede vale só na tela do jogador (cada pessoa escolhe o seu). O Início tem a logo como marca-d'água. */
 function alvoDaRota(caminho: string): string | null {
-  if (caminho === '/') return 'inicio';
   const m = caminho.match(/^\/jogador\/([0-9a-f-]{36})$/);
   return m ? m[1] : null;
 }

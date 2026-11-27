@@ -1,35 +1,36 @@
 import { Link } from 'react-router-dom';
-import { Topo } from '../components/Comuns';
+import { TipoJogo, Topo } from '../components/Comuns';
 import { Confronto, ehFuturo, SeloAgendado } from '../components/Confronto';
-import { TipoJogo } from '../components/Comuns';
+import { EscolherJogador, FaixaJogador } from '../components/JogadorAtivo';
+import { useJogadorAtivo } from '../lib/ativo';
 import { escudoDoAdversario, useDados } from '../lib/dados';
 
-/** Agenda: só os próximos jogos, separados por jogador (o mais perto primeiro). */
+/** Agenda: próximos jogos do jogador escolhido (o mais perto primeiro). */
 export function Agenda() {
   const d = useDados();
-  const grupos = d.jogadores.map((j) => {
-    const ids = new Set(d.vinculos.filter((v) => v.jogador_id === j.id && v.status === 'ativo').map((v) => v.time_id));
-    const jogos = d.jogos.filter((g) => ids.has(g.time_id) && !g.substituido_por && ehFuturo(g)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
-    return { j, jogos };
-  });
-  const total = grupos.reduce((s, g) => s + g.jogos.length, 0);
+  const [ativoId, setAtivo] = useJogadorAtivo(d.jogadores.map((j) => j.id));
+  const j = d.jogadores.find((x) => x.id === ativoId);
+  const ids = new Set(j ? d.vinculos.filter((v) => v.jogador_id === j.id && v.status === 'ativo').map((v) => v.time_id) : []);
+  const jogos = d.jogos.filter((g) => ids.has(g.time_id) && !g.substituido_por && ehFuturo(g)).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
 
   return (
     <main className="tela">
       <Topo titulo="Agenda" voltar={false}>
-        <Link to="/lancar" className="btn btn-primario btn-pequeno">+ Agendar</Link>
+        {j && <Link to="/lancar" className="btn btn-primario btn-pequeno">+ Agendar</Link>}
       </Topo>
-      {!d.carregando && total === 0 && (
-        <div className="vazio">
-          <div className="bola" aria-hidden="true">📅</div>
-          <h3>Nenhum jogo agendado</h3>
-          <p className="muted small">Lance um jogo com data futura e ele aparece aqui.</p>
-          <Link to="/lancar" className="btn btn-primario">Agendar jogo</Link>
-        </div>
-      )}
-      {grupos.filter((g) => g.jogos.length).map(({ j, jogos }) => (
-        <section key={j.id} className="pilha" style={{ gap: 10 }}>
-          {d.jogadores.length > 1 && <h2>{j.apelido || j.nome.split(' ')[0]}</h2>}
+      {!d.carregando && !j && d.jogadores.length > 1 && <EscolherJogador jogadores={d.jogadores} onEscolher={setAtivo} titulo="a agenda" />}
+      {!d.carregando && d.jogadores.length === 0 && <p className="muted">Cadastre um jogador no Início para ter agenda.</p>}
+      {j && (
+        <>
+          <FaixaJogador jogador={j} jogadores={d.jogadores} onTrocar={setAtivo} />
+          {!d.carregando && jogos.length === 0 && (
+            <div className="vazio">
+              <div className="bola" aria-hidden="true">📅</div>
+              <h3>Nenhum jogo agendado</h3>
+              <p className="muted small">Lance um jogo com data futura e ele aparece aqui.</p>
+              <Link to="/lancar" className="btn btn-primario">Agendar jogo</Link>
+            </div>
+          )}
           {jogos.map((g) => (
             <Link key={g.id} to={`/jogo/${g.id}`} className="cartao clicavel pilha" style={{ gap: 10 }}>
               <SeloAgendado data={g.data_hora} />
@@ -41,9 +42,8 @@ export function Agenda() {
               </div>
             </Link>
           ))}
-        </section>
-      ))}
-      <p className="muted small" style={{ textAlign: 'center' }}>Os jogos já disputados ficam na tela de cada jogador, na aba Jogos.</p>
+        </>
+      )}
     </main>
   );
 }

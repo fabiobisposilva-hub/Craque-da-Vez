@@ -4,6 +4,7 @@ import { Avatar, Erro, Escudo, EscolherImagem, Resultado, TipoJogo, Topo } from 
 import { salvarEscudoAdversario, salvarEscudoTime } from '../lib/escudos';
 import { VerEscalacao } from '../components/Escalacao';
 import { VerPenaltis } from '../components/Penaltis';
+import { Interacoes, useInteracoes } from '../components/Interacoes';
 import { golsNaDisputa } from '../lib/estatisticas';
 import { ehFuturo, SeloAgendado } from '../components/Confronto';
 import { escudoDoAdversario, useDados } from '../lib/dados';
@@ -18,6 +19,7 @@ export function JogoDetalhe() {
   const [erro, setErro] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [enviando, setEnviando] = useState<'' | 'time' | 'adv'>('');
+  const inter = useInteracoes(id);
 
   async function trocarEscudo(qual: 'time' | 'adv', arq: File, timeId: string, adversario: string) {
     setEnviando(qual);
@@ -100,7 +102,7 @@ export function JogoDetalhe() {
           {data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} ·{' '}
           {data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           <br />
-          {jogo.categoria} · {camp ? `${camp.nome} ${camp.temporada}${fase ? ` · ${fase}` : ''}` : jogo.tipo === 'treino' ? 'Treino' : 'Amistoso'}
+          {jogo.categoria} · {camp ? `${camp.nome} ${camp.temporada}${fase ? ` · ${fase}` : ''}` : jogo.tipo === 'treino' ? 'Treino' : jogo.tipo === 'pelada' ? 'Pelada' : 'Amistoso'}
           {jogo.casa_fora && ` · ${jogo.casa_fora === 'casa' ? 'em casa' : 'fora'}`}
         </p>
       </section>
@@ -143,7 +145,23 @@ export function JogoDetalhe() {
                     {p.amarelos > 0 && <> · <i className="cartao-ico am" /> {p.amarelos}</>}
                     {p.vermelho && <> · <i className="cartao-ico vm" /> vermelho{p.suspenso_proximo ? ' (suspenso no próximo)' : ''}</>}
                   </p>
+                  {p.goleiro && (
+                    <p className="muted small">🧤 No gol: {p.defesas ?? 0} defesa{p.defesas === 1 ? '' : 's'}{(p.defesas_dificeis ?? 0) > 0 && ` (${p.defesas_dificeis} difíce${p.defesas_dificeis === 1 ? 'il' : 'is'})`} · {p.gols_sofridos ?? jogo.gols_contra} gol{(p.gols_sofridos ?? jogo.gols_contra) === 1 ? '' : 's'} sofrido{(p.gols_sofridos ?? jogo.gols_contra) === 1 ? '' : 's'}{(p.penaltis_defendidos ?? 0) > 0 && ` · ${p.penaltis_defendidos} pênalti${p.penaltis_defendidos === 1 ? '' : 's'} defendido${p.penaltis_defendidos === 1 ? '' : 's'}`}</p>
+                  )}
+                  {p.relato_defesas && <p className="small" style={{ marginTop: 4 }}>🧤 “{p.relato_defesas}”</p>}
                   {p.observacao && <p className="small" style={{ marginTop: 4 }}>“{p.observacao}”</p>}
+                  {d.papeis[p.jogador_id] && !ehFuturo(jogo) && (
+                    <>
+                      <p className="selo" style={{ marginTop: 8 }}>Partida de {chamarDe(j)}</p>
+                      <Interacoes jogoId={jogo.id} jogadorId={p.jogador_id} alvo="partida" meuId={d.meuId} podeApagarTodos={d.papeis[p.jogador_id] === 'titular'} dados={inter.dados} recarregar={inter.recarregar} />
+                      {p.gols > 0 && (
+                        <>
+                          <p className="selo" style={{ marginTop: 8 }}>⚽ {p.gols === 1 ? 'O gol' : `Os ${p.gols} gols`} de {chamarDe(j)}</p>
+                          <Interacoes jogoId={jogo.id} jogadorId={p.jogador_id} alvo="gols" meuId={d.meuId} podeApagarTodos={d.papeis[p.jogador_id] === 'titular'} dados={inter.dados} recarregar={inter.recarregar} />
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             );

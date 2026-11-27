@@ -11,7 +11,7 @@ import { escolhasVazias, TermoMenor, VIS_OPCOES, type EscolhasTermo } from '../c
 export function EditarJogador() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade });
+  const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, funcao: '' as '' | 'linha' | 'goleiro', visibilidade: 'aprovados' as Visibilidade });
   const [termo, setTermo] = useState<EscolhasTermo>(escolhasVazias());
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -45,7 +45,7 @@ export function EditarJogador() {
       if (data) {
         const j = data as Jogador;
         mostrarImagens(j.foto_url, j.capa_url);
-        setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade });
+        setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', funcao: j.funcao ?? 'linha', visibilidade: j.visibilidade });
       }
     });
   }, [id]);
@@ -56,11 +56,12 @@ export function EditarJogador() {
     e.preventDefault();
     setErro(null);
     if (!f.apelido.trim()) return setErro('O apelido é obrigatório: é como o atleta aparece para quem não é da família.');
+    if (!f.funcao) return setErro('Escolha se o atleta é jogador de linha ou goleiro.');
     const novoMenor = !id && menor;
     if (novoMenor && (!termo.responsavel || !termo.tratamento)) return setErro('Marque as duas autorizações obrigatórias para cadastrar o atleta.');
     setSalvando(true);
     const linha = {
-      nome: f.nome.trim(), apelido: f.apelido.trim(), data_nascimento: f.data_nascimento, perna_dominante: f.perna_dominante || null,
+      nome: f.nome.trim(), apelido: f.apelido.trim(), data_nascimento: f.data_nascimento, perna_dominante: f.perna_dominante || null, funcao: f.funcao,
       visibilidade: novoMenor ? termo.visibilidade : f.visibilidade,
     };
     const r = id
@@ -132,6 +133,13 @@ export function EditarJogador() {
             </p>
           </div>
         )}
+        <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="selo" style={{ marginBottom: 8 }}>Joga de (obrigatório)</legend>
+          <div className="grade-2">
+            <button type="button" className="chip" aria-pressed={f.funcao === 'linha'} onClick={() => setF({ ...f, funcao: 'linha' })}>⚽ Jogador de linha</button>
+            <button type="button" className="chip" aria-pressed={f.funcao === 'goleiro'} onClick={() => setF({ ...f, funcao: 'goleiro' })}>🧤 Goleiro</button>
+          </div>
+        </fieldset>
         <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="selo" style={{ marginBottom: 8 }}>Perna dominante</legend>
           <div className="chips">

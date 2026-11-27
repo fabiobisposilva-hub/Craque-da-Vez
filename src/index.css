@@ -308,3 +308,16 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .termo h3 { font-size: 17px; }
 .termo p, .termo li { font-size: 14px; line-height: 1.5; }
 .termo ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.faixa-jogador { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(11, 35, 64, 0.88); border: 1px solid var(--border); }
+.faixa-jogador .avatar { width: 36px; height: 36px; font-size: 13px; border-width: 2px; }
+.quadro-goleiro { border: 1px solid rgba(255, 201, 40, 0.45); background: rgba(255, 201, 40, 0.07); border-radius: 12px; padding: 10px 12px; gap: 8px; }
+
+/* Início: logo como marca-d'água fixa no fundo */
+.marca-dagua { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: url(/logo.png) center 55% / min(85vw, 420px) no-repeat; opacity: .07; }
+
+/* Curtidas e comentários */
+.interacoes { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.comentario { background: var(--surface-2, rgba(127,127,127,.08)); border-radius: 10px; padding: 8px 10px; }
+.bolinha { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 8px;
+  border-radius: 11px; background: #e53935; color: #fff; font-size: 13px; font-weight: 800; }

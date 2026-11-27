@@ -6,6 +6,7 @@ export interface Jogador {
   apelido: string;
   data_nascimento: string;
   perna_dominante: 'direita' | 'esquerda' | 'ambidestro' | null;
+  funcao?: 'linha' | 'goleiro';
   foto_url: string | null;
   capa_url: string | null;
   visibilidade: Visibilidade;
@@ -50,7 +51,7 @@ export interface Jogo {
   categoria: string;
   data_hora: string;
   adversario: string;
-  tipo: 'amistoso' | 'treino' | 'campeonato';
+  tipo: 'amistoso' | 'treino' | 'pelada' | 'campeonato';
   campeonato_id: string | null;
   fase: string | null;
   local: string | null;
@@ -121,7 +122,16 @@ export interface Participacao {
   titular: boolean;
   craque_do_jogo: boolean;
   observacao: string | null;
+  goleiro?: boolean;
+  gols_sofridos?: number | null;
+  defesas?: number;
+  defesas_dificeis?: number;
+  penaltis_defendidos?: number;
+  relato_defesas?: string | null;
 }
+
+/** Treino e pelada ficam fora das estatísticas oficiais. */
+export const ehOficial = (j: { tipo: string }) => j.tipo !== 'treino' && j.tipo !== 'pelada';
 
 export interface Notificacao {
   id: string;

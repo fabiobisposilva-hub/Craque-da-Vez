@@ -1,7 +1,6 @@
 import { Rodape, Topo } from '../components/Comuns';
 
 /** E-mail de contato para dúvidas e pedidos sobre dados pessoais. Preencha quando tiver um. */
-export const CONTATO_WHATSAPP = '(61) 99219-5242';
 export const CONTATO_WHATSAPP_LINK = 'https://wa.me/5561992195242';
 const ATUALIZADO_EM = '27 de novembro de 2026';
 
@@ -23,7 +22,7 @@ const v = (x: string) => x || '[a definir]';
 
 function Contato() {
   return (
-    <>pelo WhatsApp <a href={CONTATO_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"><b style={{ userSelect: 'all' }}>{CONTATO_WHATSAPP}</b></a> (Fábio Bispo)</>
+    <>pelo <a href={CONTATO_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"><b>WhatsApp do Craque da Vez</b></a></>
   );
 }
 
@@ -44,6 +43,7 @@ export function Termos() {
 
         <h2>2. Sua conta</h2>
         <ul>
+          <li>Toda conta nova é conferida e liberada pelo administrador antes de usar o app, para proteger as crianças.</li>
           <li>Mantenha sua senha em segredo. O que for feito com a sua conta é de sua responsabilidade.</li>
           <li>Informe dados verdadeiros (nome, data de nascimento, telefone).</li>
           <li>Você pode convidar outros responsáveis (até 4 por jogador, com permissão para editar) e familiares só para ver. Convide apenas pessoas de confiança.</li>
@@ -133,6 +133,7 @@ export function Privacidade() {
               <tr><td>Responsáveis do jogador (até 4) e familiares convidados por eles</td><td>Todos os dados do jogador, <b>inclusive as fotos</b></td><td>Responsáveis: os dados do jogador. Convidados "só ver": nada</td></tr>
               <tr><td>Técnico de um time</td><td>Nome e só o que aconteceu <b>no time dele</b>: jogos, gols, assistências e cartões. <b>Não vê fotos</b> nem a data de nascimento</td><td>Os jogos do próprio time</td></tr>
               <tr><td>Outros usuários do app</td><td><b>Só o apelido, o time, a categoria e as estatísticas</b>, conforme a visibilidade escolhida</td><td>Nada</td></tr>
+              <tr><td>Administrador do app</td><td>Nome, e-mail, celular, data de cadastro e último uso de cada conta, e os apelidos e categorias dos atletas cadastrados, <b>só para liberar contas novas, dar suporte e manter a segurança</b>. <b>Não vê fotos</b></td><td>Libera, recusa ou bloqueia contas</td></tr>
               <tr><td>Visitantes sem conta</td><td>Nada</td><td>Nada</td></tr>
             </tbody>
           </table>

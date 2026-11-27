@@ -8,8 +8,9 @@ import { escudoDoAdversario, podeEditar, useDados } from '../lib/dados';
 import { golsDoJogador, linhasDoJogador, resumir } from '../lib/estatisticas';
 import { enviarFotoJogador } from '../lib/imagens';
 import { definirPapel } from '../lib/papel';
+import { definirJogadorAtivo } from '../lib/ativo';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { iniciais, POSICOES } from '../lib/tipos';
+import { ehOficial, iniciais, POSICOES } from '../lib/tipos';
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 type Aba = 'resumo' | 'jogos' | 'estatisticas';
@@ -31,6 +32,7 @@ export function PerfilJogador() {
   const [enviando, setEnviando] = useState<'' | 'foto' | 'papel'>('');
   const [erroFoto, setErroFoto] = useState<string | null>(null);
   useEffect(() => setMostrar(POR_PAGINA), [timeSel, filtro]);
+  useEffect(() => { if (id) definirJogadorAtivo(id); }, [id]);
 
   async function trocarFoto(arquivo: File) {
     if (!jogador) return;
@@ -67,8 +69,11 @@ export function PerfilJogador() {
     (!filtro.categoria || jogo.categoria === filtro.categoria) &&
     (!filtro.campeonato || jogo.campeonato_id === filtro.campeonato) &&
     (!filtro.temporada || jogo.data_hora.startsWith(filtro.temporada)));
-  const r = resumir(linhas, jogador.data_nascimento);
-  const rTime = resumir(doTime, jogador.data_nascimento);
+  const nomesG = [jogador.apelido, jogador.nome, jogador.nome.split(' ')[0]];
+  const r = resumir(linhas, jogador.data_nascimento, nomesG);
+  const rTime = resumir(doTime, jogador.data_nascimento, nomesG);
+  const ehGoleiro = jogador.funcao === 'goleiro';
+  const timeDe = (tid: string) => d.times.find((t) => t.id === tid);
   const camps = d.campeonatos.filter((c) => doTime.some((l) => l.jogo.campeonato_id === c.id));
   const natural = categoriaNatural(jogador.data_nascimento);
   const idsTimes = new Set(timeSel ? [timeSel] : vinculos.map((v) => v.time_id));
@@ -133,12 +138,22 @@ export function PerfilJogador() {
 
       {aba === 'resumo' && (
         <>
-          <div className="numeros">
-            <div className="numero"><b>{rTime.jogos}</b><span>Jogos</span></div>
-            <div className="numero"><b>{rTime.gols}</b><span>Gols</span>{rTime.golsPenaltis > 0 && <small className="numero-extra">{rTime.golsPenaltis} nos pênaltis</small>}</div>
-            <div className="numero"><b>{rTime.assistencias}</b><span>Assist.</span></div>
-            <div className="numero"><b>{rTime.cartoes}</b><span>Cartões</span></div>
-          </div>
+          {ehGoleiro ? (
+            <div className="numeros">
+              <div className="numero"><b>{rTime.jogos}</b><span>Jogos</span></div>
+              <div className="numero"><b>{rTime.goleiro.defesas}</b><span>Defesas</span></div>
+              <div className="numero"><b>{rTime.goleiro.golsSofridos}</b><span>Sofridos</span></div>
+              <div className="numero"><b>{rTime.goleiro.semSofrer}</b><span>Sem sofrer</span></div>
+            </div>
+          ) : (
+            <div className="numeros">
+              <div className="numero"><b>{rTime.jogos}</b><span>Jogos</span></div>
+              <div className="numero"><b>{rTime.gols}</b><span>Gols</span>{rTime.golsPenaltis > 0 && <small className="numero-extra">{rTime.golsPenaltis} nos pênaltis</small>}</div>
+              <div className="numero"><b>{rTime.assistencias}</b><span>Assist.</span></div>
+              <div className="numero"><b>{rTime.cartoes}</b><span>Cartões</span></div>
+            </div>
+          )}
+          {rTime.extras.jogos > 0 && <p className="muted small" style={{ textAlign: 'center', marginTop: -6 }}>+ {rTime.extras.jogos} treino{rTime.extras.jogos > 1 ? 's' : ''}/pelada{rTime.extras.jogos > 1 ? 's' : ''} (fora das estatísticas)</p>}
 
           {proximos[0] && (
             <Link to={`/jogo/${proximos[0].id}`} className="cartao clicavel pilha" style={{ gap: 10 }}>
@@ -190,8 +205,10 @@ export function PerfilJogador() {
               {proximos.map((g) => (
                 <Link key={g.id} to={`/jogo/${g.id}`} className="jogo-linha">
                   <span className="jogo-linha-data agendado">{dataCurta(g.data_hora)}</span>
+                  <Escudo nome={timeDe(g.time_id)?.nome ?? '?'} url={timeDe(g.time_id)?.escudo_url} cor={timeDe(g.time_id)?.cor} tamanho={28} />
+                  <span className="muted small" aria-hidden="true">×</span>
                   <Escudo nome={g.adversario} url={escudoDoAdversario(d, g.adversario)} tamanho={28} />
-                  <span className="cresce jogo-linha-nome">vs {g.adversario}</span>
+                  <span className="cresce jogo-linha-nome">{g.adversario}</span>
                   <span className="tipo-jogo tipo-campeonato" style={{ background: 'rgba(232,0,11,0.18)', color: '#ffb3b6', borderColor: 'var(--accent)' }}>Agendado</span>
                 </Link>
               ))}
@@ -211,9 +228,11 @@ export function PerfilJogador() {
                     <Link key={jogo.id} to={`/jogo/${jogo.id}`} className="jogo-linha">
                       <Resultado r={jogo.resultado} />
                       <span className="jogo-linha-data">{dataCurta(jogo.data_hora)}</span>
+                      <Escudo nome={timeDe(jogo.time_id)?.nome ?? '?'} url={timeDe(jogo.time_id)?.escudo_url} cor={timeDe(jogo.time_id)?.cor} tamanho={28} />
+                      <b className="num" style={{ whiteSpace: 'nowrap' }}>{jogo.gols_pro}×{jogo.gols_contra}</b>
                       <Escudo nome={jogo.adversario} url={escudoDoAdversario(d, jogo.adversario)} tamanho={28} />
                       <span className="cresce jogo-linha-nome">
-                        <b className="num">{jogo.gols_pro}×{jogo.gols_contra}</b> {jogo.adversario}
+                        {jogo.adversario}{!ehOficial(jogo) && <span className="penaltis-mini"> · {jogo.tipo === 'pelada' ? 'pelada' : 'treino'}</span>}
                         {jogo.penaltis && jogo.penaltis_pro != null && <span className="penaltis-mini"> ({jogo.penaltis_pro}×{jogo.penaltis_contra} pên.)</span>}
                       </span>
                       <span className="jogo-linha-mim">{part.craque_do_jogo && '⭐'}{g > 0 && `⚽${g}`}{part.assistencias > 0 && ` 🅰${part.assistencias}`}</span>
@@ -272,6 +291,28 @@ export function PerfilJogador() {
                   {r.acima.jogos > 0 && <li><span>Jogando acima da categoria ({r.acima.categorias.join(', ')})</span><b className="num">{r.acima.gols} gols em {r.acima.jogos}</b></li>}
                 </ul>
               </section>
+
+              {r.goleiro.jogos > 0 && (
+                <section className="cartao pilha quadro-goleiro">
+                  <h3>🧤 Como goleiro</h3>
+                  <ul className="lista-stats">
+                    <li><span>Jogos no gol</span><b className="num">{r.goleiro.jogos}</b></li>
+                    <li><span>Vitórias</span><b className="num">{r.goleiro.vitorias}</b></li>
+                    <li><span>Gols sofridos</span><b className="num">{r.goleiro.golsSofridos} ({r.goleiro.media.toFixed(1).replace('.', ',')} por jogo)</b></li>
+                    <li><span>Jogos sem sofrer gol</span><b className="num">{r.goleiro.semSofrer}</b></li>
+                    <li><span>Defesas</span><b className="num">{r.goleiro.defesas} ({r.goleiro.mediaDefesas.toFixed(1).replace('.', ',')} por jogo)</b></li>
+                    <li><span>⭐ Defesas difíceis</span><b className="num">{r.goleiro.dificeis}</b></li>
+                    <li><span>🥅 Pênaltis defendidos</span><b className="num">{r.goleiro.penaltisDefendidos}</b></li>
+                  </ul>
+                </section>
+              )}
+
+              {r.extras.jogos > 0 && (
+                <section className="cartao pilha">
+                  <h3>⚽ Treinos e peladas <span className="muted small">(à parte)</span></h3>
+                  <p className="small">{r.extras.jogos} jogo{r.extras.jogos > 1 ? 's' : ''} · {r.extras.gols} gol{r.extras.gols === 1 ? '' : 's'} · {r.extras.assistencias} assist.</p>
+                </section>
+              )}
 
               {r.porMes.length > 1 && (
                 <section className="cartao">
