@@ -49,6 +49,12 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
 - Na aba Estatísticas, mostrar treinos e peladas **à parte** (ex.: "Treinos e peladas: 6 jogos, 9 gols"), sem misturar com os oficiais.
 - A decidir: o "Último jogo" do Resumo e a Agenda mostram treinos/peladas ou só jogos oficiais?
 
+### 6. Lista de jogos do atleta com os dois escudos
+- Na tela do jogador, aba **Jogos** (agendados e temporadas), cada linha hoje mostra só o escudo do adversário.
+- Passar a mostrar **os dois escudos**: nosso time × adversário (ex.: escudo do Magnus × escudo do Monumental).
+- Manter o **tamanho atual** dos escudos e da linha (aprovado pelo Fábio no print de 27/11).
+- Como a linha fica mais cheia, cuidar para o nome do adversário não sumir: ex. "Magnus × Monumental" com o placar entre os escudos, ou nome abreviado.
+
 ## Já feito recentemente (para referência)
 - Reorganização: Início só com jogadores; tela do jogador com seletor de time e abas Resumo · Jogos · Estatísticas; Agenda; Família e acessos no Perfil; lançar jogo simples + "Mais detalhes"; categoria escolhida por quem lança.
 - Pênaltis (disputa) contando nos gols; cidade do jogador; excluir time e campeonato; papel de parede por pessoa.
