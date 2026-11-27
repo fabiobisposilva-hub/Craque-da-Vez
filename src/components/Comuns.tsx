@@ -106,7 +106,7 @@ export function Rodape() {
     <footer className="rodape">
       <p className="rodape-marca">Craque da Vez <span>· Hoje o destaque é você</span></p>
       <p>Desenvolvido por <b>Miguel</b> e <b>Fábio Bispo</b></p>
-      <p>Criado em 2026 · Brasília, DF · Para todo o Brasil</p>
+      <p>Criado em 2026</p>
       <p>Contato: <a className="rodape-zap" href="https://wa.me/5561992195242" target="_blank" rel="noopener noreferrer">WhatsApp (61) 99219-5242</a></p>
       <p>© {ano === 2026 ? '2026' : `2026–${ano}`} Craque da Vez. Todos os direitos reservados.</p>
       <p className="rodape-links">
