@@ -40,6 +40,15 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
   - **defesas de pênalti** e **defesas difíceis** em destaque.
 - No Início e no Resumo, os números do cartão mudam para goleiro (ex.: Jogos · Defesas · Gols sofridos) em vez de Gols · Assist.
 
+### 5. Treino e pelada separados das estatísticas
+- No lançamento do jogo, o tipo passa a ter: **Campeonato · Amistoso · Treino · Pelada**.
+  - Hoje existe "Treino / coletivo"; acrescentar **Pelada** como tipo próprio.
+- **Treino e pelada não entram nas estatísticas** de amistosos e campeonatos:
+  - não somam nos números principais (jogos, gols, assistências, cartões, V/E/D, aproveitamento, médias, gols por mês, artilharia do time, cartões do Início e do Resumo);
+  - continuam registrados e aparecem na aba Jogos do atleta, com etiqueta própria (⚽ Treino / 🏃 Pelada).
+- Na aba Estatísticas, mostrar treinos e peladas **à parte** (ex.: "Treinos e peladas: 6 jogos, 9 gols"), sem misturar com os oficiais.
+- A decidir: o "Último jogo" do Resumo e a Agenda mostram treinos/peladas ou só jogos oficiais?
+
 ## Já feito recentemente (para referência)
 - Reorganização: Início só com jogadores; tela do jogador com seletor de time e abas Resumo · Jogos · Estatísticas; Agenda; Família e acessos no Perfil; lançar jogo simples + "Mais detalhes"; categoria escolhida por quem lança.
 - Pênaltis (disputa) contando nos gols; cidade do jogador; excluir time e campeonato; papel de parede por pessoa.
