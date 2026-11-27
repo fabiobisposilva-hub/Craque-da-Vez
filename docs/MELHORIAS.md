@@ -19,11 +19,21 @@ Lista do que foi pedido: o que falta e o que já foi feito. Atualizada em 27/11/
 - Ao escolher a foto, deixar a pessoa **ajustar o enquadramento** (arrastar e aproximar) antes de salvar, para o rosto ficar no meio.
 - Conferir também a foto da capa e os avatares menores (Início, Elenco, Família) com a mesma regra.
 
-### 15. Cadastro rápido (mais simples)
-- Pedido do Fábio: cadastro rápido só com **nome, apelido, data de nascimento e telefone**.
-- O resto (foto, perna dominante, linha/goleiro, times, papel de parede etc.) fica **opcional**, para completar depois em "✏️ Editar".
-- Continua obrigatório por lei (LGPD/ECA): aceitar os Termos e, para menor de 18, a autorização do responsável (dá para ser um toque só, no fim do cadastro rápido).
-- Confirmar com o Fábio ao rodar: o cadastro rápido é o **da conta** (criar conta), o **do atleta**, ou os dois? E o telefone é do responsável (o atleta é criança; telefone de menor não aparece para ninguém além da família).
+### 15. Cadastro rápido (mais simples) — decidido com o Fábio em 27/11
+**Criar conta (o responsável):**
+- Só **nome, telefone (do responsável), e-mail e senha** + **um toque para aceitar os Termos e a Política** (e confirmar que tem 18 anos ou mais).
+
+**Cadastrar o atleta:**
+- Só **nome, apelido e data de nascimento** — a categoria (sub) sai sozinha pelo ano, na hora, rápido e simples.
+- Logo abaixo, o **termo para o pai/mãe concordar** (autorização do responsável legal para os dados do menor), em linguagem simples, com uma caixa para marcar. Sem marcar, não salva.
+- Foto, perna dominante, linha/goleiro e times ficam **opcionais**, para completar depois em "✏️ Editar" (o app lembra com um aviso "Complete o perfil").
+  - Atenção: hoje "linha ou goleiro" é obrigatório; passa a ser opcional (padrão: linha) até o pai escolher.
+
+**Lei (LGPD art. 14 e ECA Digital) — manter tudo:**
+- Consentimento específico e destacado do responsável para dados de menor, guardado com data, versão do termo e quem aceitou (tabela `consentimentos`).
+- Coletar só o necessário (por isso o cadastro curto); nada de telefone, e-mail ou cidade do menor.
+- Perfil do menor começa privado (só família); foto só para a família; o responsável pode revogar e excluir a qualquer momento.
+- Telefone é **só do responsável** e só o administrador vê (suporte).
 
 ## Ainda falta (depende de serviço pago / e-mail próprio)
 
