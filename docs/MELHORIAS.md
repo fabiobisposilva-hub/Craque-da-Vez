@@ -78,6 +78,28 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
 - Acesso **só da conta do administrador** (já existe a tabela `admins` e a função `eh_admin`); os dados saem por funções do banco que conferem o administrador, nunca direto nas tabelas.
 - Atualizar a Política de Privacidade dizendo que o administrador do app vê nome, e-mail, celular e atletas cadastrados para suporte e segurança.
 
+### 9. Privacidade: foto só para a família e perfil público escolhido
+- **Foto da criança só aparece para a família** (responsáveis e convidados liberados). Retirar a opção "Mostrar foto no perfil público" para menores de 18; nem o técnico nem outros usuários veem a foto.
+- **O responsável escolhe o que os outros podem ver** do atleta (perfil público), marcando item a item:
+  - **Apelido** (no lugar do nome completo);
+  - **Time(s)**;
+  - **Ranking** (posição/estatísticas: gols, assistências, jogos).
+- Tudo começa **desligado** para menores; nunca aparecem nome completo, data de nascimento, cidade, foto, local e horário de jogos futuros.
+- A decidir: onde os outros veem esse perfil (ranking do time? busca por atleta?) — definir junto com o item de ranking.
+
+### 10. Confirmar o e-mail com código
+- Depois do cadastro, a pessoa recebe **um código (ex.: 6 números) no e-mail** e digita no app para provar que o e-mail é dela.
+- Sem confirmar, não entra no app; botão "reenviar código" e "trocar e-mail".
+- **Atenção:** hoje o envio de e-mail do Supabase grátis é limitado a **2 por hora** (por isso a confirmação foi desligada em 26/11). Para este item é preciso configurar um envio de e-mail próprio (ex.: Gmail com "senha de app" ou um serviço como o Resend). Combinar com o Fábio antes.
+
+### 11. Administrador libera cada conta nova
+- Conta nova fica **"aguardando liberação"** depois de confirmar o e-mail: a pessoa vê uma tela "Seu cadastro está em análise".
+- O **Fábio recebe um e-mail** avisando: nome, e-mail, celular e data do cadastro (e, quando houver, o atleta que cadastrou).
+- No **Painel do administrador** (item 8): lista "Aguardando liberação" com **Liberar** e **Recusar**; liberou, a pessoa recebe e-mail e já pode entrar.
+- O administrador também pode **bloquear** uma conta depois (diferente do bloqueio por atleta, que é do responsável).
+- Pensar no caso do convidado (avó, tio): entra pelo código de convite — liberar automático ou também passar pelo administrador? Decidir com o Fábio.
+- Depende do mesmo envio de e-mail do item 10.
+
 ## Já feito recentemente (para referência)
 - Reorganização: Início só com jogadores; tela do jogador com seletor de time e abas Resumo · Jogos · Estatísticas; Agenda; Família e acessos no Perfil; lançar jogo simples + "Mais detalhes"; categoria escolhida por quem lança.
 - Pênaltis (disputa) contando nos gols; cidade do jogador; excluir time e campeonato; papel de parede por pessoa.
