@@ -55,6 +55,18 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
 - Manter o **tamanho atual** dos escudos e da linha (aprovado pelo Fábio no print de 27/11).
 - Como a linha fica mais cheia, cuidar para o nome do adversário não sumir: ex. "Magnus × Monumental" com o placar entre os escudos, ou nome abreviado.
 
+### 7. Tudo a partir do jogador (não misturar quando houver mais de um)
+- Hoje, no Início, as abas **Agenda**, **Times** e o **+ (lançar jogo)** funcionam sem escolher o jogador: com 2 ou mais atletas cadastrados, os dados se misturam.
+- Regra nova: **primeiro escolhe o jogador** (toca no cartão do Início, ex.: "Bispo"); só então Agenda, Times e + passam a valer **para aquele jogador**.
+- Como fazer:
+  - Guardar o **jogador ativo** (o último escolhido) e mostrar o nome/foto dele no topo das telas Agenda, Times e Lançar jogo, com opção "trocar jogador".
+  - **Agenda:** só os próximos jogos dos times do jogador ativo.
+  - **Times:** só os times do jogador ativo (criar time já coloca o jogador ativo no elenco).
+  - **+ Lançar jogo:** já vem com o jogador ativo; times e categorias dele.
+  - Se ninguém foi escolhido ainda (ou existe só a tela do Início), ao tocar em Agenda/Times/+ o app pede para **escolher o jogador** antes (com 1 jogador só, escolhe sozinho).
+  - Alternativa a avaliar: esconder o menu de baixo no Início e mostrá-lo só depois de entrar no jogador.
+- O Início continua só com os cartões dos jogadores (print de 27/11).
+
 ## Já feito recentemente (para referência)
 - Reorganização: Início só com jogadores; tela do jogador com seletor de time e abas Resumo · Jogos · Estatísticas; Agenda; Família e acessos no Perfil; lançar jogo simples + "Mais detalhes"; categoria escolhida por quem lança.
 - Pênaltis (disputa) contando nos gols; cidade do jogador; excluir time e campeonato; papel de parede por pessoa.
