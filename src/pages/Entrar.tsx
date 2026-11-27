@@ -76,7 +76,7 @@ export function NovaSenha() {
       <form className="pilha" onSubmit={salvar}>
         <label className="campo">
           Nova senha
-          <input id="nova-senha" type="password" autoComplete="new-password" minLength={6} required value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <input id="nova-senha" type="password" autoComplete="new-password" minLength={8} required value={senha} onChange={(e) => setSenha(e.target.value)} />
         </label>
         <Erro msg={erro} />
         {ok ? (

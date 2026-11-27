@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Avatar, Erro, EscolherImagem, Escudo, Rodape } from '../components/Comuns';
 import { dataDoJogo, ehFuturo } from '../components/Confronto';
 import { Logo } from '../components/Logo';
-import { categoriaNatural } from '../lib/categorias';
+import { categoriaNatural, idadeEmAnos } from '../lib/categorias';
 import { useDados } from '../lib/dados';
 import { linhasDoJogador, resumir } from '../lib/estatisticas';
 import { definirPapel } from '../lib/papel';
@@ -24,6 +24,11 @@ export function Inicio() {
   const [notas, setNotas] = useState<Notificacao[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [autorizados, setAutorizados] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    supabase.from('consentimentos').select('jogador_id').eq('tipo', 'tratamento_dados_menor').is('revogado_em', null)
+      .then(({ data, error }) => setAutorizados(error ? null : new Set((data ?? []).map((c) => c.jogador_id as string))));
+  }, []);
   useEffect(() => {
     supabase.from('notificacoes').select('*').eq('lida', false).order('criado_em', { ascending: false })
       .then(({ data }) => setNotas((data as Notificacao[]) ?? []));
@@ -55,6 +60,12 @@ export function Inicio() {
           {notas.map((n) => <p key={n.id} className="small">{textoNotificacao(n)}</p>)}
         </section>
       )}
+
+      {autorizados && d.jogadores.filter((j) => (d.papeis[j.id] === 'titular' || d.papeis[j.id] === 'responsavel') && idadeEmAnos(j.data_nascimento) < 18 && !autorizados.has(j.id)).map((j) => (
+        <Link key={j.id} to={`/conta/privacidade#atleta-${j.id}`} className="aviso" style={{ textDecoration: 'none', display: 'block' }}>
+          <b style={{ color: 'var(--text)' }}>🔒 Falta a sua autorização</b> para o uso dos dados de {j.apelido}, como pede a LGPD. Toque aqui para revisar e autorizar.
+        </Link>
+      ))}
 
       {d.erro && <div className="erro">{d.erro}</div>}
       {!d.carregando && d.jogadores.length === 0 && (

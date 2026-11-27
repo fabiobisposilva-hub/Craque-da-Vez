@@ -3,15 +3,12 @@ export type Visibilidade = 'publico' | 'aprovados' | 'privado';
 export interface Jogador {
   id: string;
   nome: string;
-  apelido: string | null;
+  apelido: string;
   data_nascimento: string;
   perna_dominante: 'direita' | 'esquerda' | 'ambidestro' | null;
   foto_url: string | null;
-  foto_publica: boolean;
   capa_url: string | null;
   visibilidade: Visibilidade;
-  cidade?: string | null;
-  uf?: string | null;
   /** Links temporários para mostrar as fotos privadas (preenchidos ao carregar). */
   foto_link?: string | null;
   capa_link?: string | null;
@@ -88,7 +85,6 @@ export function vencedorPenaltis(j: Pick<Jogo, 'penaltis' | 'penaltis_pro' | 'pe
   return j.penaltis_pro > j.penaltis_contra ? 'nos' : 'eles';
 }
 
-export const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] as const;
 
 export interface Escalado {
   nome: string;
@@ -172,3 +168,6 @@ export const PARENTESCOS: [string, string][] = [
   ['tecnico', 'Técnico'], ['amigo', 'Amigo(a)'], ['outro', 'Outro'],
 ];
 export const nomeParentesco = (p: string | null | undefined) => PARENTESCOS.find(([k]) => k === p)?.[1] ?? 'Não informado';
+
+/** Versão dos documentos de privacidade em vigor (gravada em cada consentimento). */
+export const VERSAO_TERMOS = '1.1';

@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP 1
 reset role;
-insert into auth.users values ('00000000-0000-0000-0000-0000000000d1','tia@x.com','{"nome":"Tia","data_nascimento":"1990-01-01"}'),
-  ('00000000-0000-0000-0000-0000000000d2','mae2@x.com','{"nome":"Outra Mae","data_nascimento":"1990-01-01"}');
+insert into auth.users values ('00000000-0000-0000-0000-0000000000d1','tia@x.com','{"nome":"Tia","data_nascimento":"1990-01-01","aceitou_termos":"true"}'),
+  ('00000000-0000-0000-0000-0000000000d2','mae2@x.com','{"nome":"Outra Mae","data_nascimento":"1990-01-01","aceitou_termos":"true"}');
 -- Ana (já responsável) vira mãe
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';

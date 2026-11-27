@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { Erro, Rodape, Topo } from '../components/Comuns';
 import { idadeEmAnos } from '../lib/categorias';
 import { mensagemDeErro, supabase } from '../lib/supabase';
+import { VERSAO_TERMOS } from '../lib/tipos';
 
 export function CriarConta() {
   const [f, setF] = useState({ nome: '', nascimento: '', telefone: '', email: '', senha: '' });
   const [aceitou, setAceitou] = useState(false);
+  const [maior, setMaior] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -16,8 +18,10 @@ export function CriarConta() {
     e.preventDefault();
     setErro(null);
     if (idadeEmAnos(f.nascimento) < 18) {
-      return setErro('Só maiores de 18 anos criam conta. Peça para seu pai, mãe ou responsável criar a conta e cadastrar você como jogador.');
+      return setErro('Você precisa ter 18 anos ou mais para criar uma conta. Peça para seu pai, mãe ou responsável criar a conta e cadastrar você.');
     }
+    if (f.senha.length < 8) return setErro('A senha precisa ter pelo menos 8 caracteres.');
+    if (!maior) return setErro('Confirme que você tem 18 anos ou mais.');
     const digitos = f.telefone.replace(/\D/g, '');
     if (digitos.length < 10 || digitos.length > 11) return setErro('Informe o celular com DDD, por exemplo (61) 99999-9999.');
     if (!aceitou) return setErro('Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.');
@@ -25,7 +29,7 @@ export function CriarConta() {
     const { data, error } = await supabase.auth.signUp({
       email: f.email,
       password: f.senha,
-      options: { data: { nome: f.nome.trim(), data_nascimento: f.nascimento, telefone: digitos, aceitou_termos: 'true' }, emailRedirectTo: location.origin },
+      options: { data: { nome: f.nome.trim(), data_nascimento: f.nascimento, telefone: digitos, aceitou_termos: 'true', versao_termos: VERSAO_TERMOS, user_agent: navigator.userAgent.slice(0, 300) }, emailRedirectTo: location.origin },
     });
     setEnviando(false);
     if (error) return setErro(mensagemDeErro(error));
@@ -37,7 +41,7 @@ export function CriarConta() {
       <main className="tela sem-menu">
         <Topo titulo="Confirme seu e-mail" />
         <p>
-          Enviamos um link para <b>{f.email}</b>. Abra o e-mail e toque no link para ativar a conta.
+          Enviamos um link para <b>{f.email}</b>. Abra o e-mail e toque no link para confirmar que o e-mail é seu e ativar a conta. Não achou? Veja a caixa de spam.
         </p>
       </main>
     );
@@ -46,7 +50,7 @@ export function CriarConta() {
   return (
     <main className="tela sem-menu">
       <Topo titulo="Criar conta" />
-      <p className="muted">Você é o responsável. Depois de criar a conta, cadastre os jogadores: você mesmo, se joga, e seus filhos.</p>
+      <p className="aviso">Só maiores de 18 anos criam conta. Atletas menores de idade são cadastrados por um pai, mãe ou responsável, dentro da conta dele.</p>
       <form className="pilha" onSubmit={criar}>
         <label className="campo">
           Seu nome
@@ -66,8 +70,12 @@ export function CriarConta() {
           <input id="email-novo" type="email" required autoComplete="email" value={f.email} onChange={set('email')} />
         </label>
         <label className="campo">
-          Senha (mínimo 6 caracteres)
-          <input id="senha-nova" type="password" required minLength={6} autoComplete="new-password" value={f.senha} onChange={set('senha')} />
+          Senha (mínimo 8 caracteres)
+          <input id="senha-nova" type="password" required minLength={8} autoComplete="new-password" value={f.senha} onChange={set('senha')} />
+        </label>
+        <label className="aceite">
+          <input id="maior18" type="checkbox" checked={maior} onChange={(e) => setMaior(e.target.checked)} />
+          <span>Declaro que tenho <b>18 anos ou mais</b>.</span>
         </label>
         <label className="aceite">
           <input id="aceite" type="checkbox" checked={aceitou} onChange={(e) => setAceitou(e.target.checked)} />

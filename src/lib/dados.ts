@@ -37,6 +37,15 @@ export async function carregarTudo(): Promise<Dados> {
   const erro = j.error ?? t.error ?? v.error ?? g.error ?? p.error ?? c.error;
   if (erro) throw erro;
   const jogadores = j.data as Jogador[];
+  // Técnico: os atletas do elenco dos times dele chegam só com nome, apelido e ano (sem foto, sem data completa)
+  const meusTimes = ((t.data ?? []) as Time[]).filter((x) => x.dono_id === meuId);
+  for (const tm of meusTimes) {
+    const { data: el } = await supabase.rpc('elenco_do_time', { p_time: tm.id });
+    for (const e of (el ?? []) as { id: string; nome: string; apelido: string; ano_nascimento: number }[]) {
+      if (!jogadores.some((x) => x.id === e.id))
+        jogadores.push({ id: e.id, nome: e.nome, apelido: e.apelido, data_nascimento: `${e.ano_nascimento}-01-01`, perna_dominante: null, foto_url: null, capa_url: null, visibilidade: 'aprovados' });
+    }
+  }
   const links = await linksDasFotos(jogadores.flatMap((x) => [x.foto_url ?? '', x.capa_url ?? '']));
   for (const x of jogadores) {
     x.foto_link = x.foto_url ? (links[x.foto_url] ?? (x.foto_url.startsWith('http') ? x.foto_url : null)) : null;

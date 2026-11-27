@@ -80,9 +80,10 @@ export function Conta() {
       </form>
 
       <section className="cartao pilha">
-        <h3>Privacidade</h3>
+        <h3>🔒 Privacidade</h3>
+        <Link to="/conta/privacidade" className="btn btn-primario">Abrir Privacidade</Link>
         <p className="muted small">
-          Outros usuários veem só o nome, a categoria e as estatísticas dos seus jogadores. Data de nascimento, local e horário de jogos futuros nunca aparecem. A foto só aparece se você ligar “Mostrar foto no perfil público”.
+          Fotos dos atletas só aparecem para a família. Para outras pessoas, aparecem só o apelido, o time, a categoria e as estatísticas. Nome, data de nascimento e local e horário de jogos futuros nunca aparecem.
         </p>
         <div className="chips">
           <Link to="/termos" className="link">Termos de Uso</Link>

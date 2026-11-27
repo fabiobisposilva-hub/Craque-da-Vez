@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase';
 import { Admin } from './pages/Admin';
 import { Privacidade, Termos } from './pages/Legal';
 import { Instalar } from './pages/Instalar';
+import { PrivacidadeConfig } from './pages/PrivacidadeConfig';
 import { PapelDeParede } from './components/PapelDeParede';
 import { AuthProvider, useAuth } from './lib/auth';
 import { configurado } from './lib/supabase';
@@ -71,6 +72,7 @@ function Rotas() {
         <Route path="/jogador/:id" element={<PerfilJogador />} />
         <Route path="/conta" element={<Conta />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/conta/privacidade" element={<PrivacidadeConfig />} />
       </Route>
       <Route path="/jogador/novo" element={<EditarJogador />} />
       <Route path="/jogador/:id/editar" element={<EditarJogador />} />

@@ -47,11 +47,11 @@ export async function enviarFotoJogador(jogadorId: string, arquivo: File, tipo: 
   return caminho;
 }
 
-/** Fotos privadas são mostradas por links temporários (1 hora). */
+/** Fotos privadas são mostradas por links temporários (10 minutos), gerados só para quem é da família. */
 export async function linksDasFotos(caminhos: string[]): Promise<Record<string, string>> {
   const unicos = [...new Set(caminhos.filter((c) => c && !c.startsWith('http')))];
   if (!unicos.length) return {};
-  const { data } = await supabase.storage.from('fotos').createSignedUrls(unicos, 3600);
+  const { data } = await supabase.storage.from('fotos').createSignedUrls(unicos, 600);
   const mapa: Record<string, string> = {};
   for (const item of data ?? []) if (item.path && item.signedUrl) mapa[item.path] = item.signedUrl;
   return mapa;

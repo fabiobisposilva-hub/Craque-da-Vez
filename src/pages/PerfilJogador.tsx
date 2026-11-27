@@ -98,7 +98,6 @@ export function PerfilJogador() {
           {jogador.apelido && <p className="muted small">{jogador.nome}</p>}
           <p className="muted small">
             {natural} · {jogador.data_nascimento.slice(0, 4)}
-            {(jogador.cidade || jogador.uf) && ` · 📍 ${[jogador.cidade, jogador.uf].filter(Boolean).join(' - ')}`}
           </p>
         </div>
       </div>
@@ -321,7 +320,10 @@ function Convites({ jogadorId, vinculos, onMudou }: { jogadorId: string; vinculo
   async function responder(timeId: string, aceitar: boolean) {
     const { data } = await supabase.auth.getUser();
     const q = supabase.from('jogador_times');
-    if (aceitar) await q.update({ status: 'ativo', aprovado_por_responsavel: data.user?.id }).match({ jogador_id: jogadorId, time_id: timeId });
+    if (aceitar) {
+      await q.update({ status: 'ativo', aprovado_por_responsavel: data.user?.id }).match({ jogador_id: jogadorId, time_id: timeId });
+      await supabase.rpc('registrar_consentimento', { p_jogador: jogadorId, p_tipo: 'acesso_tecnico', p_valor: 'aceito', p_versao: '1.1' });
+    }
     else await q.delete().match({ jogador_id: jogadorId, time_id: timeId });
     onMudou();
   }
@@ -330,10 +332,10 @@ function Convites({ jogadorId, vinculos, onMudou }: { jogadorId: string; vinculo
       {vinculos.map((v) => (
         <div key={v.time_id} className="pilha">
           <p>
-            O técnico do <b>{v.time}</b> convidou o jogador para o elenco. Se aceitar, o técnico passa a lançar os jogos deste time e vê só o que acontece nele.
+            <b>O técnico do time {v.time} convidou o atleta para o elenco.</b> Se você aprovar, o técnico poderá ver o nome e lançar as estatísticas do jogador <b>nos jogos deste time</b>. Ele não verá os dados de outros times, a data de nascimento completa nem as fotos.
           </p>
           <div className="grade-2">
-            <button className="btn btn-primario" onClick={() => responder(v.time_id, true)}>Aceitar</button>
+            <button className="btn btn-primario" onClick={() => responder(v.time_id, true)}>Aprovar</button>
             <button className="btn btn-fantasma" onClick={() => responder(v.time_id, false)}>Recusar</button>
           </div>
         </div>

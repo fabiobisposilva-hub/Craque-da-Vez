@@ -4,18 +4,15 @@ import { Erro, EscolherImagem, Topo } from '../components/Comuns';
 import { enviarFotoJogador, linksDasFotos } from '../lib/imagens';
 import { categoriaNatural, categoriasElegiveis, idadeEmAnos } from '../lib/categorias';
 import { mensagemDeErro, supabase } from '../lib/supabase';
-import { iniciais, UFS, type Jogador, type Visibilidade } from '../lib/tipos';
+import { iniciais, VERSAO_TERMOS, type Jogador, type Visibilidade } from '../lib/tipos';
+import { escolhasVazias, TermoMenor, VIS_OPCOES, type EscolhasTermo } from '../components/TermoMenor';
 
-const VIS: [Visibilidade, string, string][] = [
-  ['aprovados', 'Só aprovados', 'Só quem você aprovar vê o perfil'],
-  ['publico', 'Público', 'Qualquer usuário vê nome, categoria e estatísticas'],
-  ['privado', 'Privado', 'Só os responsáveis veem'],
-];
 
 export function EditarJogador() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [f, setF] = useState({ nome: '', apelido: '', cidade: '', uf: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade, foto_publica: false });
+  const [f, setF] = useState({ nome: '', apelido: '', data_nascimento: '', perna_dominante: '' as string, visibilidade: 'aprovados' as Visibilidade });
+  const [termo, setTermo] = useState<EscolhasTermo>(escolhasVazias());
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [imgs, setImgs] = useState<{ foto: string | null; capa: string | null }>({ foto: null, capa: null });
@@ -48,7 +45,7 @@ export function EditarJogador() {
       if (data) {
         const j = data as Jogador;
         mostrarImagens(j.foto_url, j.capa_url);
-        setF({ nome: j.nome, apelido: j.apelido ?? '', cidade: j.cidade ?? '', uf: j.uf ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade, foto_publica: j.foto_publica });
+        setF({ nome: j.nome, apelido: j.apelido ?? '', data_nascimento: j.data_nascimento, perna_dominante: j.perna_dominante ?? '', visibilidade: j.visibilidade });
       }
     });
   }, [id]);
@@ -57,18 +54,34 @@ export function EditarJogador() {
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
-    setSalvando(true);
     setErro(null);
-    const { apelido, cidade, uf, ...resto } = f;
-    const linha: Record<string, unknown> = { ...resto, nome: f.nome.trim(), perna_dominante: f.perna_dominante || null, cidade: cidade.trim() || null, uf: uf || null };
-    if (apelido.trim() || id) linha.apelido = apelido.trim() || null;
+    if (!f.apelido.trim()) return setErro('O apelido é obrigatório: é como o atleta aparece para quem não é da família.');
+    const novoMenor = !id && menor;
+    if (novoMenor && (!termo.responsavel || !termo.tratamento)) return setErro('Marque as duas autorizações obrigatórias para cadastrar o atleta.');
+    setSalvando(true);
+    const linha = {
+      nome: f.nome.trim(), apelido: f.apelido.trim(), data_nascimento: f.data_nascimento, perna_dominante: f.perna_dominante || null,
+      visibilidade: novoMenor ? termo.visibilidade : f.visibilidade,
+    };
     const r = id
       ? await supabase.from('jogadores').update(linha).eq('id', id).select('id').single()
       : await supabase.from('jogadores').insert(linha).select('id').single();
+    if (r.error) { setSalvando(false); return setErro(mensagemDeErro(r.error)); }
+    const jid = r.data.id as string;
+    // Prova do consentimento (LGPD art. 14)
+    const reg = (tipo: string, valor: string) => supabase.rpc('registrar_consentimento', { p_jogador: jid, p_tipo: tipo, p_valor: valor, p_versao: VERSAO_TERMOS });
+    if (novoMenor) {
+      await reg('responsavel_legal', 'aceito');
+      await reg('tratamento_dados_menor', 'aceito');
+      await reg('acesso_tecnico', termo.tecnico ? 'aceito' : 'recusado');
+      await reg('visibilidade_perfil', termo.visibilidade);
+    } else if (id) {
+      await reg('visibilidade_perfil', f.visibilidade);
+    }
     setSalvando(false);
-    if (r.error) return setErro(mensagemDeErro(r.error));
-    nav(`/jogador/${r.data.id}`, { replace: true });
+    nav(`/jogador/${jid}`, { replace: true });
   }
+
 
   const elegiveis = f.data_nascimento ? categoriasElegiveis(f.data_nascimento) : [];
 
@@ -86,7 +99,7 @@ export function EditarJogador() {
             </div>
           </div>
           {imgs.capa && <div style={{ height: 120, borderRadius: 12, backgroundImage: `url(${imgs.capa})`, backgroundSize: 'cover', backgroundPosition: 'center' }} aria-label="Capa atual" />}
-          <p className="muted small">A foto aparece redonda no lugar das iniciais. Só a família vê, a menos que você ligue “Mostrar foto no perfil público”.</p>
+          <p className="muted small">A foto aparece redonda no lugar das iniciais e <b>só a família vê</b>.</p>
         </section>
       ) : (
         <p className="aviso">Depois de cadastrar, você pode colocar a foto do jogador e o fundo do perfil.</p>
@@ -97,22 +110,10 @@ export function EditarJogador() {
           <input id="jog-nome" required value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} />
         </label>
         <label className="campo">
-          Apelido (opcional)
-          <input id="jog-apelido" maxLength={30} placeholder="Como chamam ele no time" value={f.apelido} onChange={(e) => setF({ ...f, apelido: e.target.value })} />
+          Apelido (obrigatório)
+          <input id="jog-apelido" required maxLength={30} placeholder='Ex.: "Miguelzinho" ou "Camisa 10"' value={f.apelido} onChange={(e) => setF({ ...f, apelido: e.target.value })} />
+          <span className="muted small" style={{ fontWeight: 500 }}>É como o atleta aparece para quem não é da família. Evite o nome completo.</span>
         </label>
-        <div className="escalado" style={{ gridTemplateColumns: 'minmax(0, 1fr) 5.5rem' }}>
-          <label className="campo">
-            Cidade
-            <input id="jog-cidade" maxLength={60} placeholder="Ex.: Brasília" value={f.cidade} onChange={(e) => setF({ ...f, cidade: e.target.value })} />
-          </label>
-          <label className="campo">
-            Estado
-            <select id="jog-uf" value={f.uf} onChange={(e) => setF({ ...f, uf: e.target.value })}>
-              <option value="">UF</option>
-              {UFS.map((u) => <option key={u}>{u}</option>)}
-            </select>
-          </label>
-        </div>
         <label className="campo">
           Data de nascimento
           <input id="jog-nasc" type="date" required max={new Date().toISOString().slice(0, 10)} value={f.data_nascimento}
@@ -120,6 +121,7 @@ export function EditarJogador() {
               const nasc = e.target.value;
               const ficouMenor = nasc && idadeEmAnos(nasc) < 18;
               setF({ ...f, data_nascimento: nasc, visibilidade: ficouMenor && f.visibilidade === 'publico' ? 'aprovados' : f.visibilidade });
+              if (ficouMenor) setTermo((t) => ({ ...t, visibilidade: 'aprovados' }));
             }} />
         </label>
         {f.data_nascimento && (
@@ -140,29 +142,23 @@ export function EditarJogador() {
             ))}
           </div>
         </fieldset>
-        <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend className="selo" style={{ marginBottom: 8 }}>Quem vê o perfil</legend>
-          {VIS.map(([v, nome, desc]) => (
-            <button type="button" key={v} className="cartao" style={{ textAlign: 'left', cursor: 'pointer', color: 'inherit', font: 'inherit', borderColor: f.visibilidade === v ? 'var(--accent)' : undefined }}
-              aria-pressed={f.visibilidade === v} onClick={() => setF({ ...f, visibilidade: v })}>
-              <b>{nome}</b>
-              <p className="muted small">{desc}</p>
-            </button>
-          ))}
-          {menor && f.visibilidade === 'publico' && (
-            <p className="aviso">Atleta menor de idade com perfil público: só nome, categoria e estatísticas aparecem. Data de nascimento e jogos futuros nunca aparecem.</p>
-          )}
-        </fieldset>
-        <label className="toggle cartao">
-          <span>
-            <b>Mostrar foto no perfil público</b>
-            <span className="muted small" style={{ display: 'block' }}>Desligado: aparecem as iniciais.</span>
-          </span>
-          <input id="jog-foto-pub" type="checkbox" checked={f.foto_publica} onChange={(e) => setF({ ...f, foto_publica: e.target.checked })} />
-        </label>
+        {!id && menor && f.data_nascimento ? (
+          <TermoMenor nome={f.apelido || f.nome} valor={termo} onChange={setTermo} />
+        ) : (
+          <fieldset className="pilha" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="selo" style={{ marginBottom: 8 }}>Quem vê o apelido, o time e as estatísticas</legend>
+            {VIS_OPCOES.map(([k, v]) => (
+              <label key={k} className="aceite">
+                <input type="radio" name="jog-vis" checked={f.visibilidade === k} onChange={() => setF({ ...f, visibilidade: k })} />
+                <span>{v}</span>
+              </label>
+            ))}
+            <p className="muted small">Fotos, nome completo e data de nascimento nunca aparecem para quem não é da família.</p>
+          </fieldset>
+        )}
         <Erro msg={erro} />
         <button className="btn btn-primario" disabled={salvando}>
-          {salvando ? 'Salvando…' : id ? 'Salvar' : 'Cadastrar jogador'}
+          {salvando ? 'Salvando…' : id ? 'Salvar' : menor && f.data_nascimento ? 'Autorizar e cadastrar' : 'Cadastrar jogador'}
         </button>
       </form>
     </main>

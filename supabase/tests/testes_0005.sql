@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP 1
 -- Vovó: convidada só para ver
 reset role;
-insert into auth.users values ('00000000-0000-0000-0000-0000000000b0','vovo@x.com','{"nome":"Vovó","data_nascimento":"1955-01-01"}');
+insert into auth.users values ('00000000-0000-0000-0000-0000000000b0','vovo@x.com','{"nome":"Vovó","data_nascimento":"1955-01-01","aceitou_termos":"true"}');
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
 insert into convites_responsavel (codigo, jogador_id, papel) values ('VOVO0001','10000000-0000-0000-0000-000000000001','leitor');

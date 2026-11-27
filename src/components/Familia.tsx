@@ -147,6 +147,8 @@ export function Familia({ jogadorId, nome }: { jogadorId: string; nome: string }
       {convite ? (
         <div className="pilha">
           <p className="selo">{convite.papel === 'leitor' ? 'Convite só para ver' : 'Convite de responsável'}</p>
+          {convite.papel === 'responsavel' && <p className="aviso">Quem usar este código poderá <b style={{ color: 'var(--text)' }}>ver e editar todos os dados</b> de {nome}, inclusive as fotos. Só envie para pai, mãe ou responsável legal.</p>}
+          {convite.papel === 'leitor' && <p className="aviso">Quem usar este código verá os jogos, as estatísticas e as <b style={{ color: 'var(--text)' }}>fotos</b> de {nome}, sem poder alterar nada. Envie só para pessoas da família.</p>}
           <b className="num" style={{ fontSize: 26, letterSpacing: '0.12em' }}>{convite.codigo}</b>
           <button className="btn btn-primario" onClick={() => compartilhar(convite)}>Enviar convite pelo WhatsApp</button>
           <textarea id="msg-convite" readOnly value={mensagem(convite)} rows={6} onFocus={(e) => e.currentTarget.select()} aria-label="Mensagem do convite" />

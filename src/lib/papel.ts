@@ -14,10 +14,10 @@ export async function linkDoPapel(alvo: Alvo): Promise<string | null> {
   let url: string | null = null;
   if (data?.caminho) {
     const [bucket, ...resto] = data.caminho.split('/');
-    const r = await supabase.storage.from(bucket).createSignedUrl(resto.join('/'), 3600);
+    const r = await supabase.storage.from(bucket).createSignedUrl(resto.join('/'), 600);
     url = r.data?.signedUrl ?? null;
   }
-  cache.set(alvo, { url, ate: Date.now() + 50 * 60000 });
+  cache.set(alvo, { url, ate: Date.now() + 8 * 60000 });
   return url;
 }
 

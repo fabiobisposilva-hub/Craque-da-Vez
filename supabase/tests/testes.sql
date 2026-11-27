@@ -4,13 +4,13 @@ grant select, insert, update, delete on all tables in schema public to authentic
 
 -- Usuários: Fabio (pai), Ana (mãe), Técnico da Magnus
 insert into auth.users values
- ('00000000-0000-0000-0000-00000000000f','fabio@x.com','{"nome":"Fabio","data_nascimento":"1985-03-10"}'),
- ('00000000-0000-0000-0000-00000000000a','ana@x.com','{"nome":"Ana","data_nascimento":"1987-06-01"}'),
- ('00000000-0000-0000-0000-00000000000c','tec@x.com','{"nome":"Técnico","data_nascimento":"1980-01-01"}');
+ ('00000000-0000-0000-0000-00000000000f','fabio@x.com','{"nome":"Fabio","data_nascimento":"1985-03-10","aceitou_termos":"true"}'),
+ ('00000000-0000-0000-0000-00000000000a','ana@x.com','{"nome":"Ana","data_nascimento":"1987-06-01","aceitou_termos":"true"}'),
+ ('00000000-0000-0000-0000-00000000000c','tec@x.com','{"nome":"Técnico","data_nascimento":"1980-01-01","aceitou_termos":"true"}');
 
 -- Menor de 18 não cria conta
 do $$ begin
-  insert into auth.users values ('00000000-0000-0000-0000-000000000017','kid@x.com', jsonb_build_object('nome','Kid','data_nascimento', (current_date - interval '17 years')::date));
+  insert into auth.users values ('00000000-0000-0000-0000-000000000017','kid@x.com', jsonb_build_object('nome','Kid','data_nascimento', (current_date - interval '17 years')::date,'aceitou_termos','true'));
   raise exception 'FALHOU: menor criou conta';
 exception when others then
   if sqlerrm like 'FALHOU%' then raise; end if;
@@ -24,8 +24,8 @@ select categoria_natural('2016-05-03', 2026) = 'Sub-10' as sub10,
 
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
-insert into jogadores (id, nome, data_nascimento, perna_dominante) values
-  ('10000000-0000-0000-0000-000000000001','Miguel','2016-05-03','direita');
+insert into jogadores (id, nome, apelido, data_nascimento, perna_dominante) values
+  ('10000000-0000-0000-0000-000000000001','Miguel','Miguelzinho','2016-05-03','direita');
 select count(*) = 1 as fabio_eh_titular from jogador_responsaveis where jogador_id = '10000000-0000-0000-0000-000000000001';
 insert into times (id, nome, modalidade) values ('20000000-0000-0000-0000-000000000001','Minas','campo');
 insert into jogador_times (jogador_id, time_id, posicao, numero_camisa) values
@@ -72,11 +72,11 @@ select count(*) = 0 as tecnico_nao_ve_minas from jogos where time_id = '20000000
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
 select tipo, payload->>'jogador' as jogador, payload->>'gols' as gols from notificacoes order by tipo;
 select origem, oficial, substituido_por is not null as substituido from jogos where time_id = '20000000-0000-0000-0000-000000000002' order by origem;
-select nome, categoria, jogos, gols, assistencias, foto_url from perfil_publico;
+select apelido, categoria, jogos, gols, assistencias from perfil_publico;
 
 -- 5º responsável é barrado
 reset role;
-insert into auth.users select gen_random_uuid(), 'r'||g||'@x.com', '{"nome":"R","data_nascimento":"1980-01-01"}' from generate_series(1,3) g;
+insert into auth.users select gen_random_uuid(), 'r'||g||'@x.com', '{"nome":"R","data_nascimento":"1980-01-01","aceitou_termos":"true"}' from generate_series(1,3) g;
 do $$ begin
   insert into jogador_responsaveis (jogador_id, usuario_id)
     select '10000000-0000-0000-0000-000000000001', id from usuarios where nome = 'R';
@@ -95,5 +95,5 @@ select count(*) = 1 as tecnico_ve_atleta_do_elenco from jogadores;
 -- Cadastro como o app faz: insert ... returning
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
-insert into jogadores (nome, data_nascimento) values ('Irmã do Miguel','2019-02-01') returning nome;
+insert into jogadores (nome, apelido, data_nascimento) values ('Irmã do Miguel','Irmã','2019-02-01') returning nome;
 insert into times (nome, modalidade) values ('Time da Ana','society') returning nome;
