@@ -45,7 +45,7 @@ export function Termos() {
         <p>O técnico que cadastra um time vê apenas o que acontece no time dele. Quando técnico e responsável lançam o mesmo jogo, vale a versão do técnico, e o responsável é avisado das diferenças.</p>
 
         <h2>5. Disponibilidade</h2>
-        <p>O app é oferecido como está, gratuitamente, e pode ter falhas, ficar fora do ar ou mudar. Fazemos o possível para manter os dados seguros, mas recomendamos não depender dele como único registro de informações importantes.</p>
+        <p>O app é oferecido como está e pode ter falhas, ficar fora do ar ou mudar. Fazemos o possível para manter os dados seguros, mas recomendamos não depender dele como único registro de informações importantes.</p>
 
         <h2>6. Encerrar o uso</h2>
         <p>Você pode parar de usar o app quando quiser e pedir a exclusão da sua conta e dos dados dos seus jogadores <Contato />.</p>

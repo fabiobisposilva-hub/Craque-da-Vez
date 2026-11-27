@@ -46,7 +46,7 @@ export function Instalar() {
       <Logo compacto />
       <h1 style={{ textAlign: 'center' }}>Instale o Craque da Vez</h1>
       <p className="muted" style={{ textAlign: 'center' }}>
-        É grátis e não precisa de loja de aplicativos. O ícone fica na tela do celular e o app abre em tela cheia.
+        Não precisa de loja de aplicativos. O ícone fica na tela do celular e o app abre em tela cheia.
       </p>
 
       {instalado ? (
