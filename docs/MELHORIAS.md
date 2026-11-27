@@ -2,6 +2,17 @@
 
 Lista do que foi pedido: o que falta e o que já foi feito. Atualizada em 27/11/2026.
 
+## Próxima rodada (anotado em 27/11 — rodar só quando o Fábio pedir)
+
+### 12. Tela do time: caixas de escolha desproporcionais (prints de 27/11)
+- **Elenco → "Categoria neste time"**: a caixa "Automática (pelo ano do jogo)" está grande demais e fica **por cima do texto** ("Categoria neste time" aparece cortado atrás dela). Deixar a caixa menor e colocá-la **abaixo** do texto (ou texto em cima, caixa embaixo), sem sobrepor nada.
+- **Campeonatos → "🏆 Campeão" + "Excluir"**: mesmo problema. A caixa de resultado e o botão Excluir espremem o nome do campeonato ("Copa do Mundo de futsal 2026 · Sub-10" sai quebrado uma palavra por linha e cortado). Nome em cima, ocupando a linha toda; caixa (menor) e Excluir embaixo.
+- Revisar as outras caixas de escolha do app para o mesmo tamanho proporcional.
+
+### 13. "Últimos jogos do time" com os escudos
+- Na tela do time, cada linha de "Últimos jogos do time" hoje mostra só a letra V/E/D e o nome do adversário.
+- Passar a mostrar **os dois escudos** (nosso time × adversário) com o placar, igual à lista de jogos do atleta (item 6), mantendo a cor de V/E/D.
+
 ## Ainda falta (depende de serviço pago / e-mail próprio)
 
 ### 10. Confirmar o e-mail com código
