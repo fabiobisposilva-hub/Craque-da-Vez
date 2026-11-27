@@ -35,6 +35,14 @@ Lista do que foi pedido: o que falta e o que já foi feito. Atualizada em 27/11/
 - Perfil do menor começa privado (só família); foto só para a família; o responsável pode revogar e excluir a qualquer momento.
 - Telefone é **só do responsável** e só o administrador vê (suporte).
 
+### 16. Campeonatos: tocar no campeonato abre os jogos dele (print de 27/11, tela do time)
+- Na lista **Campeonatos** do time (ex.: "Copa Integração 2026 · Sub-10", "Copa do Mundo de futsal 2026 · Sub-10"), **tocar no nome do campeonato** abre o **histórico de jogos só daquele campeonato**, como um filtro.
+  - Mostrar no topo: nome, temporada, sub, situação (Em andamento / 🏆 Campeão…) e o resumo do campeonato (jogos, V/E/D, gols pró e contra, artilheiro do time no campeonato).
+  - Lista dos jogos do campeonato com **os dois escudos** e o placar (igual ao item 13), por fase quando houver.
+  - Botão para voltar a ver todos os jogos.
+- **Escudos não aparecem** nessa tela: aplicar o item 13 também aqui (lista de campeonatos pode ter o escudo do time ao lado do nome).
+- **Ajustar os ícones/botões** do cartão do campeonato: a caixa "Em andamento / 🏆 Campeão" e o botão "🗑️ Excluir" estão grandes e por cima do nome (mesmo problema do item 12). Nome inteiro em cima; embaixo, caixa menor e Excluir como ícone pequeno (🗑️), com confirmação.
+
 ## Ainda falta (depende de serviço pago / e-mail próprio)
 
 ### 10. Confirmar o e-mail com código
