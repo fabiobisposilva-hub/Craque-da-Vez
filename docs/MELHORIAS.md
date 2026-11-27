@@ -19,6 +19,7 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
   - Também nos Termos de Uso e na Política de Privacidade.
 
 ### 3. Tela inicial (Início)
+- **Tirar o botão "🖼️ Papel de parede"** do topo do Início (reforçado pelo Fábio no print de 27/11).
 - **Sem** a opção de trocar papel de parede.
 - Fundo fixo do app com a **logo do Craque da Vez como marca-d'água**.
 - O papel de parede personalizado fica **só na tela do jogador** (já é assim hoje), cada pessoa escolhendo o seu.
@@ -66,6 +67,16 @@ Lista do que foi pedido e ainda **não** foi feito. Atualizada em 27/11/2026.
   - Se ninguém foi escolhido ainda (ou existe só a tela do Início), ao tocar em Agenda/Times/+ o app pede para **escolher o jogador** antes (com 1 jogador só, escolhe sozinho).
   - Alternativa a avaliar: esconder o menu de baixo no Início e mostrá-lo só depois de entrar no jogador.
 - O Início continua só com os cartões dos jogadores (print de 27/11).
+
+### 8. Painel do administrador completo (só o Fábio)
+- Hoje existe um painel simples em **Perfil → 📊 Painel do administrador** (usando agora, hoje, 7 e 30 dias, total de contas e últimos cadastros). Ampliar para:
+- **Todas as pessoas cadastradas**, com busca: nome, e-mail, celular (WhatsApp), data em que entrou, último uso e se está bloqueada em algum atleta.
+- **Quais atletas cada pessoa cadastrou** (nome, categoria, cidade, times) e de **quais atletas ela participa como convidada** (parentesco e se edita ou só vê).
+- **Aviso de pessoa nova**: destaque "Novos desde a última visita" e um contador (bolinha) no Perfil quando alguém se cadastrar; opcionalmente notificação.
+- **Lista de atletas do app**: todos os atletas, quem cadastrou, quantos jogos e a data do último jogo.
+- **Quem está usando agora e quem não usa há muito tempo.**
+- Acesso **só da conta do administrador** (já existe a tabela `admins` e a função `eh_admin`); os dados saem por funções do banco que conferem o administrador, nunca direto nas tabelas.
+- Atualizar a Política de Privacidade dizendo que o administrador do app vê nome, e-mail, celular e atletas cadastrados para suporte e segurança.
 
 ## Já feito recentemente (para referência)
 - Reorganização: Início só com jogadores; tela do jogador com seletor de time e abas Resumo · Jogos · Estatísticas; Agenda; Família e acessos no Perfil; lançar jogo simples + "Mais detalhes"; categoria escolhida por quem lança.
