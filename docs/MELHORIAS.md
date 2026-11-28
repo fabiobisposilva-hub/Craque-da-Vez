@@ -43,6 +43,13 @@ Lista do que foi pedido: o que falta e o que já foi feito. Atualizada em 27/11/
 - **Escudos não aparecem** nessa tela: aplicar o item 13 também aqui (lista de campeonatos pode ter o escudo do time ao lado do nome).
 - **Ajustar os ícones/botões** do cartão do campeonato: a caixa "Em andamento / 🏆 Campeão" e o botão "🗑️ Excluir" estão grandes e por cima do nome (mesmo problema do item 12). Nome inteiro em cima; embaixo, caixa menor e Excluir como ícone pequeno (🗑️), com confirmação.
 
+### 17. Tela do time: elenco com a posição e o apelido certos (print de 28/11, time Magnus)
+- **Posição:** o Miguel já escolheu **Fixo**, mas no Elenco aparece "Posição não informada". A posição escolhida (no cadastro do atleta, no time ou na escalação do jogo) tem que aparecer no Elenco — um lugar só guarda a posição e todas as telas leem dela. Verificar onde o "Fixo" foi salvo e unificar.
+  - Deixar também trocar a posição direto no Elenco (Goleiro, Fixo, Ala direita, Ala esquerda, Pivô), no lugar do texto "Posições do futsal: …".
+- **Apelido no lugar do nome:** no Elenco e na **Artilharia e garçons** aparece "Miguel Bispo Baldez". Mostrar o **apelido** (ex.: "Bispo") — é o que a família escolheu e o que a regra de privacidade manda mostrar fora da família. Nome completo só dentro do perfil, para a família.
+  - Quando o apelido for trocado em "✏️ Editar", a tela do time tem que **atualizar na hora** (sem precisar sair e voltar).
+- Junto com o item 12 (caixa "Categoria neste time" menor, sem cobrir o texto).
+
 ## Ainda falta (depende de serviço pago / e-mail próprio)
 
 ### 10. Confirmar o e-mail com código
